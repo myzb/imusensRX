@@ -37,6 +37,8 @@ int hid_init()
 {
     int ret = 0;
 
+    atexit(hid_end);
+
     while(ret <= 0) {
         // C-based example is 16C0:0480:FFAB:0200
         ret = rawhid_open(1, 0x16C0, 0x0480, 0xFFAB, 0x0200);
@@ -69,6 +71,8 @@ int hid_getMsg()
     u_int32_t ts1, ts2;                 // Help vars to compute filterspeed
     u_int32_t lastUpdate = 0;           // Used to calculate integration interval
     float delta_t = 0.0f;               // Integration interval for both filter schemes
+
+    u_int32_t timeout = 0;
 
     // Msg the uC that application is online
     boost::thread thread(hid_sendMsg, rx_data.raw, 64, 100);
@@ -104,8 +108,14 @@ int hid_getMsg()
 
         } else {
             if (Debug) printf("Timeout!\n");
+            timeout++;
         }
 
+        if (getTimestamp_usec() - ts1 >= 5000000) {
+            printf("timeout/s = %.1f\n", timeout/5.0f);
+            ts1 = getTimestamp_usec();
+            timeout = 0;
+        }
         // Send the msg back
         //boost::thread thread(hid_sendMsg, rx_data.raw, 64, 10);
 
@@ -128,12 +138,12 @@ int hid_sendMsg(void *buf, int len, int timeout)
     return 0;
 }
 
-int hid_end(int num)
+void hid_end()
 {
     hidStop = true;
     sleep(1);   // give the thread time to stop
-    rawhid_close(num);
-    return 0;
+    rawhid_close(1);
+    return;
 }
 
 #if defined(OS_LINUX) || defined(OS_MACOSX)

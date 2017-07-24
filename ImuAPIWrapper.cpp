@@ -93,9 +93,6 @@ int Imusensor_Unload(Tcl_Interp *interp, int flags)
 
     Tcl_DeleteCommand(interp, "imu_get_mvmatrix");
 
-    // Stop
-    hid_end(0);
-
     // Return
     Tcl_SetObjResult(interp, Tcl_NewIntObj(0));
     return TCL_OK;

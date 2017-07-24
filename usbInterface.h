@@ -9,7 +9,7 @@
 #define _USBINTERFACE_H_
 
 int hid_init();
-int hid_end(int num);
+void hid_end();
 int hid_getMsg();
 int hid_sendMsg(void *buf, int len, int timeout);
 bool hid_getStatus();
