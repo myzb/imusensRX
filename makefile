@@ -2,20 +2,76 @@
 # Created on : Jun 12, 2017
 #     Author : may
 
-TARGET   := libimusensor
-OUTDIR   := $(HOME)/CarMaker/GUI/lib
-OBJDIR   := obj
+MINGW_INSTALL_DIR  := /usr/i686-w64-mingw32
+DEVEL_DIR          := /local/work.may/Development_Linux
+CM_ROOT_DIR        := /local/work.may/CarMaker
+OBJ_DIR            := out
+
+TARGET             := libimusensor
+
+LD_FLAGS     :=
+LIBS         :=
+LIB_DIRS     :=
+INCLUDE_DIRS :=
+OUT_DIR      :=
+EXT          :=
 
 # Local cpp source files
 CPP_SRCS := \
 	ImuAPIWrapper.cpp \
 	quaternionFilters.cpp \
 	usbInterface.cpp \
-	utils.cpp \
-	hid_linux.cpp
+	utils.cpp
 
-#C_SRCS += \
-#./hid_linux.c 
+# Target OS
+ifeq ($(OS), win)
+# Build for Windows
+
+# Specific Windows CPPs
+CPP_SRCS += \
+	hid_windows.cpp
+	
+# Shared libraries
+LIBS := \
+	boost_system \
+	boost_chrono \
+	boost_thread_win32 \
+	hid \
+	setupapi \
+	tcl86
+
+INCLUDE_DIRS := \
+	$(DEVEL_DIR)/boost_1_65_1 \
+	$(DEVEL_DIR)/tcl8.6.7/generic
+	
+# Prepend -I to include dir list
+INCLUDE_DIRS := $(addprefix -I,$(INCLUDE_DIRS))
+
+LIB_DIRS := \
+	$(DEVEL_DIR)/boost_1_65_1/stage/lib \
+	$(DEVEL_DIR)/tcl8.6.7/build/tcl
+
+# Prepend -L to include lib dir list
+LIB_DIRS := $(addprefix -L,$(LIB_DIRS))
+
+CC       := i686-w64-mingw32-gcc
+CXX      := i686-w64-mingw32-g++
+OUT_DIR  := $(OBJ_DIR)
+EXT      := dll
+
+CXXFLAGS := \
+	-DOS_WINDOWS -D_WIN32 -DBUILD_DLL \
+	-O0 -g3 -Wall -c -fmessage-length=0 -fPIC -MMD -MP \
+	$(INCLUDE_DIRS)
+
+LDFLAGS  := -Wl,--out-implib,$(OBJ_DIR)/$(TARGET).a $(LIB_DIRS)
+
+else
+# Build for Linux
+
+# Specific Linux CPPs
+CPP_SRCS += \
+	hid_linux.cpp
 
 # Shared libraries
 LIBS := \
@@ -24,6 +80,17 @@ LIBS := \
 	usb \
 	tcl8.6
 
+CC       := gcc
+CXX      := g++
+OUT_DIR  := $(CM_ROOT_DIR)/GUI/lib
+EXT      := so
+
+CXXFLAGS := \
+	-DOS_LINUX \
+	-O0 -g3 -Wall -c -fmessage-length=0 -fPIC -MMD -MP
+
+endif
+
 #---------------------------------------------------------------------------------
 #DO NOT EDIT BELOW THIS LINE
 #---------------------------------------------------------------------------------
@@ -31,49 +98,39 @@ LIBS := \
 # Prepend -l to library list
 LIBS := $(addprefix -l,$(LIBS))
 
-# Copy object names from CPP files and prepend object output dir
+# Grab obj names from cpp and prepend obj dir
 # obj1.cpp obj2.cpp ... --> $(OBJS) := out/obj1.o out/obj2.o ...
-OBJS := $(patsubst %.cpp,$(OBJDIR)/%.o, $(CPP_SRCS))
-
-# Same for C files
-#OBJS += $(patsubst %.cpp,$(OBJDIR)/%.o, $(C_SRCS))
+OBJS := $(patsubst %.cpp,$(OBJ_DIR)/%.o, $(CPP_SRCS))
 
 # All Target
-all: directories $(TARGET).so
+all: directories $(TARGET).$(EXT)
 
 directories:
-	@mkdir -p $(OBJDIR)
-	@mkdir -p $(OUTDIR)
+	@mkdir -p $(OBJ_DIR)
+	@mkdir -p $(OUT_DIR)
 
 # Link
-# Passes each object in $(OBJS) to the compiler and links to $(TARGET).so afterwards
-$(TARGET).so: $(OBJS)
+# Passes each object in $(OBJS) to the compiler and links to $(TARGET).$(EXT) afterwards
+$(TARGET).$(EXT): $(OBJS)
 	@echo 'Building target: $@'
 	@echo 'Invoking: GCC C++ Linker'
-	g++ -m32 -shared -o $(OUTDIR)/$(TARGET).so $(OBJS) $(LIBS)
+	$(CXX) -m32 -shared $(LDFLAGS) -o $(OUT_DIR)/$(TARGET).$(EXT) $(OBJS) $(LIBS)
 	@echo 'Finished building target: $@'
 	@echo ' '
 
 # Compile
 # Called recursively for each object in $(OBJS) by the linking process
-$(OBJDIR)/%.o: ./%.cpp
+$(OBJ_DIR)/%.o: ./%.cpp
 	@echo 'Building file: $<'
 	@echo 'Invoking: GCC C++ Compiler'
-	g++ -m32 -O0 -g3 -Wall -c -fmessage-length=0 -fPIC -MMD -MP -MT"$@" -o "$@" "$<"
+	$(CXX) -m32 $(CXXFLAGS) -o "$@" "$<"
 	@echo 'Finished building: $<'
 	@echo ' '
 
-#$(OUTDIR)/%.o: ./%.c
-#	@echo 'Building file: $<'
-#	@echo 'Invoking: GCC C Compiler'
-#	gcc -m32 -I"/home/may/Projects_Eclipse/imu_rx" -O0 -g3 -Wall -c -fmessage-length=0 -fPIC -MMD -MP -MF"$(@:%.o=%.d)" -MT"$(@)" -o "$@" "$<"
-#	@echo 'Finished building: $<'
-#	@echo ' '
-
 # Clean build
 clean:
-	-rm -rf $(OBJDIR) $(OUTDIR)/$(TARGET).so
-	-@echo ' '
+	-rm -rf $(OBJ_DIR) $(OUT_DIR)/$(TARGET).*
+	@echo ' '
 
 .PHONY: all clean
 	

@@ -14,12 +14,12 @@
 // RawHID transfers floats as bytes
 typedef union {
   float num_f[16];
-  u_int32_t num_d[16];
-  u_int8_t raw[64];
+  uint32_t num_d[16];
+  uint8_t raw[64];
 } data_t;
 
 
-float updateTime(u_int32_t &lastUpdate);
+float updateTime(uint32_t &lastUpdate);
 
 void getEulers();
 

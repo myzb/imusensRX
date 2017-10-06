@@ -57,7 +57,7 @@ int get_mvmatrix(ClientData data, Tcl_Interp *interp, int objc, Tcl_Obj *CONST o
 }
 
 // Imusensor_Init: Defines the entry for the application
-int Imusensor_Init(Tcl_Interp *interp)
+SENSOR_DLL int Imusensor_Init(Tcl_Interp *interp)
 {
     // Link with the stubs library to make the extension as portable as possible
     if (Tcl_InitStubs(interp, "8.6", 0) == NULL) {
@@ -86,7 +86,7 @@ int Imusensor_Init(Tcl_Interp *interp)
 }
 
 // Imusensor_Unload: Unload the lib
-int Imusensor_Unload(Tcl_Interp *interp, int flags)
+SENSOR_DLL int Imusensor_Unload(Tcl_Interp *interp, int flags)
 {
     // Delete registered procedures
     printf("Unloading lib ...\n"); fflush(stdout);

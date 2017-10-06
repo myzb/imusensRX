@@ -2,10 +2,7 @@
 #include <stdlib.h>
 #include <stdarg.h>
 #include <string.h>
-
-#if defined(__linux__)
-#define OS_LINUX
-#endif
+#include <stdint.h>
 
 #if defined(OS_LINUX) || defined(OS_MACOSX)
 #include <sys/ioctl.h>
@@ -14,7 +11,8 @@
 #include <conio.h>
 #endif
 
-#include <boost/thread.hpp>
+#include <boost/thread/thread.hpp>
+#include <boost/chrono.hpp>
 
 #include "hid.h"
 #include "usbInterface.h"
@@ -48,14 +46,14 @@ int hid_init()
             //r = rawhid_open(1, 0x16C0, 0x0476, 0xFFAB, 0x0200); // Everything
             if (ret <= 0) {
                 printf("no rawhid device found\n");
-                sleep(2);
+                boost::this_thread::sleep_for(boost::chrono::seconds(2));
             }
         }
     }
     printf("found rawhid device\n");
 
     // wait 10ms
-    usleep(10000);
+    boost::this_thread::sleep_for(boost::chrono::milliseconds(10));
     hidStop = false;
     boost::thread thread(hid_getMsg);
 
@@ -68,11 +66,11 @@ int hid_getMsg()
     data_t rx_data;
     int ts_start, delta_ts;             // Control the hid rx/tx loop speed
 
-    u_int32_t ts1, ts2;                 // Help vars to compute filterspeed
-    u_int32_t lastUpdate = 0;           // Used to calculate integration interval
+    uint32_t ts1, ts2;                 // Help vars to compute filterspeed
+    uint32_t lastUpdate = 0;           // Used to calculate integration interval
     float delta_t = 0.0f;               // Integration interval for both filter schemes
 
-    u_int32_t timeout = 0;
+    uint32_t timeout = 0;
 
     // Msg the uC that application is online
     boost::thread thread(hid_sendMsg, rx_data.raw, 64, 100);
@@ -141,7 +139,7 @@ int hid_sendMsg(void *buf, int len, int timeout)
 void hid_end()
 {
     hidStop = true;
-    sleep(1);   // give the thread time to stop
+    boost::this_thread::sleep_for(boost::chrono::seconds(1)); // give the thread time to stop
     rawhid_close(1);
     return;
 }

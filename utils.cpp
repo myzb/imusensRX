@@ -8,16 +8,17 @@
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdint.h>
 #include <sys/time.h>
 
 #include "utils.h"
 #include "quaternionFilters.h"
 
 // Calculate the time the last update took for use in the quaternion filters
-float updateTime(u_int32_t &lastUpdate)
+float updateTime(uint32_t &lastUpdate)
 {
     struct timeval tv;
-    u_int32_t now;
+    uint32_t now;
     float deltat;
 
     gettimeofday(&tv, NULL);
