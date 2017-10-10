@@ -6,22 +6,31 @@ MINGW_INSTALL_DIR  := /usr/i686-w64-mingw32
 DEVEL_DIR          := /local/work.may/Development_Linux
 CM_ROOT_DIR        := /local/work.may/CarMaker
 OBJ_DIR            := out
+RM                 := rm -rf
 
 TARGET             := libimusensor
+VER                := 0.1
 
 LD_FLAGS     :=
-LIBS         :=
-LIB_DIRS     :=
-INCLUDE_DIRS :=
+LIBS         := dtrack
+LIB_DIRS     := DTrackSDK/out
+INCLUDE_DIRS := DTrackSDK
 OUT_DIR      :=
 EXT          :=
+
+# Dependencies
+SUB_DIRS := \
+	DTrackSDK
 
 # Local cpp source files
 CPP_SRCS := \
 	ImuAPIWrapper.cpp \
 	quaternionFilters.cpp \
 	usbInterface.cpp \
-	utils.cpp
+	utils.cpp \
+	device_interface.cpp \
+	DeviceBase.cpp \
+	smarttrack.cpp
 
 # Target OS
 ifeq ($(OS), win)
@@ -32,22 +41,23 @@ CPP_SRCS += \
 	hid_windows.cpp
 	
 # Shared libraries
-LIBS := \
+LIBS += \
 	boost_system \
 	boost_chrono \
 	boost_thread_win32 \
 	hid \
 	setupapi \
-	tcl86
+	tcl86 \
+	ws2_32
 
-INCLUDE_DIRS := \
+INCLUDE_DIRS += \
 	$(DEVEL_DIR)/boost_1_65_1 \
 	$(DEVEL_DIR)/tcl8.6.7/generic
 	
 # Prepend -I to include dir list
 INCLUDE_DIRS := $(addprefix -I,$(INCLUDE_DIRS))
 
-LIB_DIRS := \
+LIB_DIRS += \
 	$(DEVEL_DIR)/boost_1_65_1/stage/lib \
 	$(DEVEL_DIR)/tcl8.6.7/build/tcl
 
@@ -64,7 +74,9 @@ CXXFLAGS := \
 	-O0 -g3 -Wall -c -fmessage-length=0 -fPIC -MMD -MP \
 	$(INCLUDE_DIRS)
 
-LDFLAGS  := -Wl,--out-implib,$(OBJ_DIR)/$(TARGET).a $(LIB_DIRS)
+LDFLAGS  := \
+	-Wl,--out-implib,$(OBJ_DIR)/$(TARGET).a \
+	$(LIB_DIRS)
 
 else
 # Build for Linux
@@ -74,7 +86,7 @@ CPP_SRCS += \
 	hid_linux.cpp
 
 # Shared libraries
-LIBS := \
+LIBS += \
 	boost_system \
 	boost_thread \
 	usb \
@@ -83,11 +95,22 @@ LIBS := \
 CC       := gcc
 CXX      := g++
 OUT_DIR  := $(CM_ROOT_DIR)/GUI/lib
-EXT      := so
+EXT      := so.$(VER)
+
+# Prepend -I to include dir list
+INCLUDE_DIRS := $(addprefix -I,$(INCLUDE_DIRS))
+
+# Prepend -L to include lib dir list
+LIB_DIRS := $(addprefix -L,$(LIB_DIRS))
 
 CXXFLAGS := \
 	-DOS_LINUX \
-	-O0 -g3 -Wall -c -fmessage-length=0 -fPIC -MMD -MP
+	-O0 -g3 -Wall -c -fmessage-length=0 -fPIC -MMD -MP \
+	$(INCLUDE_DIRS)
+
+LDFLAGS  := \
+	-Wl,-soname,$(TARGET).$(EXT).0 \
+	$(LIB_DIRS)
 
 endif
 
@@ -127,10 +150,21 @@ $(OBJ_DIR)/%.o: ./%.cpp
 	@echo 'Finished building: $<'
 	@echo ' '
 
+# Recursive call subdirs
+subsystem:
+	$(MAKE) -C $(SUB_DIRS)
+
 # Clean build
 clean:
-	-rm -rf $(OBJ_DIR) $(OUT_DIR)/$(TARGET).*
+	$(RM) $(OBJ_DIR) $(OUT_DIR)/$(TARGET).*
 	@echo ' '
 
-.PHONY: all clean
+SUBOUT_DIR := $(addsuffix /$(OBJ_DIR),$(SUB_DIRS))
+
+clobber:
+	$(RM) $(OBJ_DIR) $(OUT_DIR)/$(TARGET).*
+	$(RM) $(SUBOUT_DIR)
+	@echo ' '
+
+.PHONY: all subsystem clean clobber
 	

@@ -13,9 +13,10 @@
 #include <glm/gtc/type_ptr.hpp>
 #include <glm/gtx/quaternion.hpp>
 
+#include "ImuAPIWrapper.h"
+#include "device_interface.h"
 #include "quaternionFilters.h"
 #include "usbInterface.h"
-#include "ImuAPIWrapper.h"
 
 int get_mvmatrix(ClientData data, Tcl_Interp *interp, int objc, Tcl_Obj *CONST objv[])
 {
@@ -78,6 +79,13 @@ SENSOR_DLL int Imusensor_Init(Tcl_Interp *interp)
     Tcl_CreateObjCommand(interp, "imu_get_mvmatrix", get_mvmatrix,
         (ClientData)NULL, (Tcl_CmdDeleteProc *)NULL);
 
+    Tcl_CreateObjCommand(interp, "device_init", device_init,
+        (ClientData)NULL, (Tcl_CmdDeleteProc *)NULL);
+    Tcl_CreateObjCommand(interp, "device_terminate", device_terminate,
+        (ClientData)NULL, (Tcl_CmdDeleteProc *)NULL);
+    Tcl_CreateObjCommand(interp, "device_close", device_close,
+        (ClientData)NULL, (Tcl_CmdDeleteProc *)NULL);
+
     // Return
     printf("%s: succeeded\n", __FUNCTION__);
     fflush(stdout);
@@ -92,6 +100,8 @@ SENSOR_DLL int Imusensor_Unload(Tcl_Interp *interp, int flags)
     printf("Unloading lib ...\n"); fflush(stdout);
 
     Tcl_DeleteCommand(interp, "imu_get_mvmatrix");
+    Tcl_DeleteCommand(interp, "device_init");
+    Tcl_DeleteCommand(interp, "device_terminate");
 
     // Return
     Tcl_SetObjResult(interp, Tcl_NewIntObj(0));
