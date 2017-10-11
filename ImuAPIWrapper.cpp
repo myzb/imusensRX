@@ -22,13 +22,16 @@ int get_mvmatrix(ClientData data, Tcl_Interp *interp, int objc, Tcl_Obj *CONST o
 {
     static bool flag = 1;
     // get the rotation quaternion received via USB. getQ() returns a pointer to the global 'q[0]'
-    glm::quat qOri = glm::quat(*(getQ()+1)*(+1),    /* OGL_x =  IMU_x */
-                               *(getQ()+3)*(+1),    /* OGL_y =  IMU_z */
-                               *(getQ()+2)*(-1),    /* OGL_z = -IMU_y */
-                               *(getQ()+0)*(-1));   /* OGL_w =  IMU_w */
+    glm::quat qOri = glm::quat(*(getQ()+0)*(+1),    /* CM_w = +IMU_w */
+                               *(getQ()+1)*(+1),    /* CM_x = +IMU_x */
+                               *(getQ()+2)*(-1),    /* CM_y = -IMU_y */
+                               *(getQ()+3)*(-1));   /* CM_z = -IMU_z */
 
     // TODO: Note on 'w': Multiplying w by (-1) rotates the cube according to the sensor.
     // For the actual implementation we want to use w*(+1) as we will be rotating the camera.
+
+    // Convert the quaternion to matrix
+    glm::mat4 ori = glm::toMat4(qOri);
 
     // Default Initializations
 
@@ -40,15 +43,12 @@ int get_mvmatrix(ClientData data, Tcl_Interp *interp, int objc, Tcl_Obj *CONST o
     // FIXME: Workaround to set undefined variable Pgm(Debug)
     Tcl_SetVar2Ex(interp, "Pgm", "Debug", Tcl_NewIntObj(0), 0);
 
-    // Convert the quaternion to matrix
-    glm::mat4 mv = glm::toMat4(qOri);
-
     // Allocate new tcl_ret object
     Tcl_Obj* tcl_ret = Tcl_NewListObj(0, NULL);
 
     // Append matrix colums as elements to tcl_ret object
-    const float *pMV = (const float*)glm::value_ptr(mv);
-    for (int i = 0; i < 16; ++i) {
+    const float *pMV = (const float*)glm::value_ptr(ori);
+    for (int i = 0; i < 16; i++) {
         Tcl_ListObjAppendElement(interp, tcl_ret, Tcl_NewDoubleObj(pMV[i]));
     }
 
