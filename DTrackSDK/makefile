@@ -2,13 +2,9 @@
 # Created on : Oct 10, 2017
 #     Author : may
 
-MINGW_INSTALL_DIR  := /usr/i686-w64-mingw32
-DEVEL_DIR          := /local/work.may/Development_Linux
-CM_ROOT_DIR        := /local/work.may/CarMaker
-OBJ_DIR            := out
+TARGET       := libdtrack
 
-TARGET             := libdtrack
-
+OBJ_DIR      := $(ROOT_DIR)/$(OBJ_DIR)
 LD_FLAGS     :=
 LIBS         :=
 LIB_DIRS     :=
@@ -16,16 +12,16 @@ INCLUDE_DIRS :=
 OUT_DIR      :=
 EXT          :=
 
-# Local cpp source files
+#------------------------------------------------------------------------------
+# OS independent cpp's
 CPP_SRCS := \
 	DTrackNet.cpp \
 	DTrackParse.cpp \
 	DTrackParser.cpp \
 	DTrackSDK.cpp
 
-# Target OS
+# Windows Buids ---------------------------------------------------------------
 ifeq ($(OS), win)
-# Build for Windows
 
 AR       := i686-w64-mingw32-ar
 CC       := i686-w64-mingw32-gcc
@@ -40,7 +36,7 @@ CXXFLAGS := \
 ARFLAGS  := rcs
 
 else
-# Build for Linux
+# Linux builds ----------------------------------------------------------------
 
 AR       := ar
 CC       := gcc
@@ -56,15 +52,14 @@ ARFLAGS  := rcs
 
 endif
 
-#---------------------------------------------------------------------------------
+#------------------------------------------------------------------------------
 #DO NOT EDIT BELOW THIS LINE
-#---------------------------------------------------------------------------------
+#------------------------------------------------------------------------------
 
-# Prepend -l to library list
+# Prepend lib dir prefix
 LIBS := $(addprefix -l,$(LIBS))
 
-# Grab obj names from cpp and prepend obj dir
-# obj1.cpp obj2.cpp ... --> $(OBJS) := out/obj1.o out/obj2.o ...
+# Use obj_dir/cpp_name for obj names
 OBJS := $(patsubst %.cpp,$(OBJ_DIR)/%.o, $(CPP_SRCS))
 
 # All Target

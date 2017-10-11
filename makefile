@@ -2,27 +2,34 @@
 # Created on : Jun 12, 2017
 #     Author : may
 
+TARGET             := libimusensor
+
+# Paths
+MKFILE_PATH        := $(abspath $(lastword $(MAKEFILE_LIST)))
+ROOT_DIR           := $(patsubst %/,%,$(dir $(MKFILE_PATH)))
 MINGW_INSTALL_DIR  := /usr/i686-w64-mingw32
 DEVEL_DIR          := /local/work.may/Development_Linux
 CM_ROOT_DIR        := /local/work.may/CarMaker
 OBJ_DIR            := out
 RM                 := rm -rf
 
-TARGET             := libimusensor
-VER                := 0.1
-
+# Global flags
 LD_FLAGS     :=
-LIBS         := dtrack
-LIB_DIRS     := DTrackSDK/out
-INCLUDE_DIRS := DTrackSDK
+LIBS         :=
+LIB_DIRS     := $(OBJ_DIR)
+INCLUDE_DIRS :=
 OUT_DIR      :=
 EXT          :=
 
-# Dependencies
+# Sub-projects ----------------------------------------------------------------
 SUB_DIRS := \
 	DTrackSDK
 
-# Local cpp source files
+LIBS += \
+	dtrack
+
+#------------------------------------------------------------------------------
+# OS independent cpp's
 CPP_SRCS := \
 	ImuAPIWrapper.cpp \
 	quaternionFilters.cpp \
@@ -32,11 +39,10 @@ CPP_SRCS := \
 	DeviceBase.cpp \
 	smarttrack.cpp
 
-# Target OS
+# Windows Buids ---------------------------------------------------------------
 ifeq ($(OS), win)
-# Build for Windows
 
-# Specific Windows CPPs
+# Specific Windows cpp's
 CPP_SRCS += \
 	hid_windows.cpp
 	
@@ -52,17 +58,16 @@ LIBS += \
 
 INCLUDE_DIRS += \
 	$(DEVEL_DIR)/boost_1_65_1 \
-	$(DEVEL_DIR)/tcl8.6.7/generic
+	$(DEVEL_DIR)/tcl8.6.7/generic \
+	$(SUB_DIRS)
 	
-# Prepend -I to include dir list
-INCLUDE_DIRS := $(addprefix -I,$(INCLUDE_DIRS))
-
 LIB_DIRS += \
 	$(DEVEL_DIR)/boost_1_65_1/stage/lib \
 	$(DEVEL_DIR)/tcl8.6.7/build/tcl
 
-# Prepend -L to include lib dir list
-LIB_DIRS := $(addprefix -L,$(LIB_DIRS))
+# Prepend include/lib dir prefix
+INCLUDE_DIRS := $(addprefix -I,$(INCLUDE_DIRS))
+LIB_DIRS     := $(addprefix -L,$(LIB_DIRS))
 
 CC       := i686-w64-mingw32-gcc
 CXX      := i686-w64-mingw32-g++
@@ -79,9 +84,9 @@ LDFLAGS  := \
 	$(LIB_DIRS)
 
 else
-# Build for Linux
+# Linux builds ----------------------------------------------------------------
 
-# Specific Linux CPPs
+# Specific Linux cpp's
 CPP_SRCS += \
 	hid_linux.cpp
 
@@ -91,17 +96,18 @@ LIBS += \
 	boost_thread \
 	usb \
 	tcl8.6
+	
+INCLUDE_DIRS += \
+	$(SUB_DIRS)
 
 CC       := gcc
 CXX      := g++
 OUT_DIR  := $(CM_ROOT_DIR)/GUI/lib
-EXT      := so.$(VER)
+EXT      := so
 
-# Prepend -I to include dir list
+# Prepend include/lib dir prefix
 INCLUDE_DIRS := $(addprefix -I,$(INCLUDE_DIRS))
-
-# Prepend -L to include lib dir list
-LIB_DIRS := $(addprefix -L,$(LIB_DIRS))
+LIB_DIRS     := $(addprefix -L,$(LIB_DIRS))
 
 CXXFLAGS := \
 	-DOS_LINUX \
@@ -109,14 +115,19 @@ CXXFLAGS := \
 	$(INCLUDE_DIRS)
 
 LDFLAGS  := \
-	-Wl,-soname,$(TARGET).$(EXT).0 \
 	$(LIB_DIRS)
 
 endif
 
-#---------------------------------------------------------------------------------
+# Export variables for sub-makefiles ------------------------------------------
+
+export ROOT_DIR
+export OBJ_DIR
+export OS
+
+#------------------------------------------------------------------------------
 #DO NOT EDIT BELOW THIS LINE
-#---------------------------------------------------------------------------------
+#------------------------------------------------------------------------------
 
 # Prepend -l to library list
 LIBS := $(addprefix -l,$(LIBS))
@@ -126,7 +137,14 @@ LIBS := $(addprefix -l,$(LIBS))
 OBJS := $(patsubst %.cpp,$(OBJ_DIR)/%.o, $(CPP_SRCS))
 
 # All Target
-all: directories $(TARGET).$(EXT)
+all: \
+	directories \
+	submodules \
+	$(TARGET).$(EXT)
+
+module: \
+	directories \
+	$(TARGET).$(EXT)
 
 directories:
 	@mkdir -p $(OBJ_DIR)
@@ -151,7 +169,7 @@ $(OBJ_DIR)/%.o: ./%.cpp
 	@echo ' '
 
 # Recursive call subdirs
-subsystem:
+submodules:
 	$(MAKE) -C $(SUB_DIRS)
 
 # Clean build
@@ -159,12 +177,5 @@ clean:
 	$(RM) $(OBJ_DIR) $(OUT_DIR)/$(TARGET).*
 	@echo ' '
 
-SUBOUT_DIR := $(addsuffix /$(OBJ_DIR),$(SUB_DIRS))
-
-clobber:
-	$(RM) $(OBJ_DIR) $(OUT_DIR)/$(TARGET).*
-	$(RM) $(SUBOUT_DIR)
-	@echo ' '
-
-.PHONY: all subsystem clean clobber
+.PHONY: all submodules module clean
 	
