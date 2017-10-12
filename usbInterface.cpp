@@ -21,10 +21,9 @@
 
 #define AHRS
 
+float q_ref[4] = {1.0f, 0.0f, 0.0f, 0.0f};
 static const int Debug = 0;
 static bool hidStop = false;
-
-static char get_keystroke(void);
 
 bool hid_getStatus()
 {
@@ -171,7 +170,7 @@ static char _getch(void) {
 }
 #endif
 
-static char get_keystroke(void)
+char get_keystroke(void)
 {
     if (_kbhit()) {
         char c = _getch();

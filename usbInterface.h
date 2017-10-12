@@ -14,4 +14,6 @@ int hid_getMsg();
 int hid_sendMsg(void *buf, int len, int timeout);
 bool hid_getStatus();
 
+char get_keystroke(void);
+
 #endif /* _USBINTERFACE_H_ */
