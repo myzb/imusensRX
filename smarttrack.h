@@ -8,8 +8,10 @@
 #ifndef SMARTTRACK_H
 #define SMARTTRACK_H
 
+#include <tcl.h>
+#include <string>
 #include <boost/thread.hpp>
-#include <glm/glm.hpp>
+#include <glm/mat4x4.hpp>
 #include <DTrackSDK.hpp>
 
 class SmartTrack : public DeviceBase {
@@ -35,7 +37,7 @@ private:
     void* udprx_func(DTrackSDK* dt);   // Thread function
 public:
     // Public functions
-    SmartTrack(char* pName);
+    SmartTrack(std::string &name);
 
     int Init(Tcl_Interp* interp, Tcl_Obj* tcl_ret, char* pSrcIpAddr, char* pDestIpAddr, char* pChNum);
     int GetMVMatrix(Tcl_Interp* interp, Tcl_Obj* tcl_ret);

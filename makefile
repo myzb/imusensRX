@@ -32,12 +32,11 @@ LIBS += \
 # OS independent cpp's
 CPP_SRCS := \
 	ImuAPIWrapper.cpp \
-	quaternionFilters.cpp \
-	usbInterface.cpp \
-	utils.cpp \
 	device_interface.cpp \
+	utils.cpp \
 	DeviceBase.cpp \
-	smarttrack.cpp
+	smarttrack.cpp \
+	IPGTrack.cpp
 
 # Windows Buids ---------------------------------------------------------------
 ifeq ($(OS), win)

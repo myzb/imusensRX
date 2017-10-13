@@ -5,7 +5,6 @@
  *      Author: may
  */
 
-#include <tcl.h>
 #include <iostream>
 #include <complex>
 
@@ -28,7 +27,7 @@ static const int debug = 0;
 #define NO_OGL
 #define STORE_DATA
 
-SmartTrack::SmartTrack(char* pName) : DeviceBase(pName) {
+SmartTrack::SmartTrack(std::string &name) : DeviceBase(name) {
     _dt = nullptr;
     _udprx_thread = nullptr;
     _run = false;

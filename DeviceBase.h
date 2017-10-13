@@ -8,16 +8,20 @@
 #ifndef _DEVICEBASE_H_
 #define _DEVICEBASE_H_
 
+#include <string>
+#include <tcl.h>
+
 class DeviceBase {
 private:
-    char* _device;
-
+    std::string _device;
 public:
-    DeviceBase(char *device);
+    DeviceBase();
+    DeviceBase(std::string& cmd);
     virtual ~DeviceBase();
 
     virtual int Init();
-    virtual int Stop();
+    virtual int Terminate();
+    virtual int GetMVMatrix(Tcl_Interp* interp, Tcl_Obj* tcl_ret);
 };
 
 #endif /* _DEVICEBASE_H_ */

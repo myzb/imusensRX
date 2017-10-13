@@ -8,6 +8,10 @@
 #ifndef DEVICE_INTERFACE_H_
 #define DEVICE_INTERFACE_H_
 
+#include <tcl.h>
+
+int get_mvmatrix(ClientData data, Tcl_Interp *interp, int objc, Tcl_Obj *CONST objv[]);
+
 int device_init(ClientData data, Tcl_Interp *interp, int objc, Tcl_Obj *CONST objv[]);
 int device_terminate(ClientData data, Tcl_Interp *interp, int objc, Tcl_Obj *CONST objv[]);
 int device_close(ClientData data, Tcl_Interp *interp, int objc, Tcl_Obj *CONST objv[]);
