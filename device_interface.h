@@ -10,7 +10,7 @@
 
 #include <tcl.h>
 
-int get_mvmatrix(ClientData data, Tcl_Interp *interp, int objc, Tcl_Obj *CONST objv[]);
+int device_get_mvmatrix(ClientData data, Tcl_Interp *interp, int objc, Tcl_Obj *CONST objv[]);
 
 int device_init(ClientData data, Tcl_Interp *interp, int objc, Tcl_Obj *CONST objv[]);
 int device_terminate(ClientData data, Tcl_Interp *interp, int objc, Tcl_Obj *CONST objv[]);

@@ -5,6 +5,8 @@
  *      Author: may
  */
 
+#include <fstream>
+#include <iostream>
 #include <stdio.h>
 #include <stdint.h>
 #include <sys/time.h>
@@ -18,11 +20,31 @@
 
 #include "utils.h"
 
+int exporter::export_data(std::string filename, float *data, int data_len)
+{
+    static std::ofstream myfile;
+    if (!myfile.is_open())
+        myfile.open(filename, std::ios::trunc | std::ios::out);
+
+    if (myfile.is_open()) {
+        myfile << get_micros();
+        for (int i = 0; i < data_len; i++)
+             myfile << "\t" << data[i];
+
+        myfile << std::endl;
+    } else {
+        std::cout << "Unable to open file\n";
+    }
+    return 0;
+}
+
 int get_micros()
 {
     struct timeval tv;
     gettimeofday(&tv, NULL);
-    return (1000000 * tv.tv_sec + tv.tv_usec);
+
+    // truncate secs since epoch to ~4min and add usecs
+    return ( 1000000 * (0x03F & tv.tv_sec) + tv.tv_usec);
 }
 
 #if defined(OS_LINUX) || defined(OS_MACOSX)

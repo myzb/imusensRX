@@ -22,6 +22,7 @@ public:
     virtual int Init();
     virtual int Terminate();
     virtual int GetMVMatrix(Tcl_Interp* interp, Tcl_Obj* tcl_ret);
+    virtual void Export(bool state);
 };
 
 #endif /* _DEVICEBASE_H_ */

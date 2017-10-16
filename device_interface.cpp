@@ -9,6 +9,7 @@
 #include <boost/thread/once.hpp>
 
 #include "device_interface.h"
+#include "utils.h"
 #include "DeviceBase.h"
 #include "IPGTrack.h"
 #include "smarttrack.h"
@@ -18,6 +19,7 @@ DeviceBase *device = nullptr;
 boost::once_flag once = BOOST_ONCE_INIT;
 
 void hack_ipgmovie_terminate() {
+    device->Export(false);
     device->Terminate();
 }
 
@@ -25,8 +27,9 @@ void hack_ipgmovie_init() {
     atexit(hack_ipgmovie_terminate);
     device = new IPGTrack();
     device->Init();
+    device->Export(true);
 }
-int get_mvmatrix(ClientData data, Tcl_Interp *interp, int objc, Tcl_Obj *CONST objv[])
+int device_get_mvmatrix(ClientData data, Tcl_Interp *interp, int objc, Tcl_Obj *CONST objv[])
 {
     // FIXME: Remove once IPGMovie is ready
     // Make sure to call init function only once
@@ -50,20 +53,20 @@ int device_init(ClientData data, Tcl_Interp *interp, int objc, Tcl_Obj *CONST ob
 {
     device = new IPGTrack();
     device->Init();
-    return 0;
+    return TCL_OK;
 }
 
 int device_terminate(ClientData data, Tcl_Interp *interp, int objc, Tcl_Obj *CONST objv[])
 {
     device->Terminate();
     delete device;
-    return 0;
+    return TCL_OK;
 }
 
 int device_close(ClientData data, Tcl_Interp *interp, int objc, Tcl_Obj *CONST objv[])
 {
     device->Terminate();
     delete device;
-    return 0;
+    return TCL_OK;
 }
 
