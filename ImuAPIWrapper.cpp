@@ -7,53 +7,8 @@
 
 #include <tcl.h>
 
-#include <glm/glm.hpp>
-#include <glm/gtx/quaternion.hpp>
-#include <glm/gtc/matrix_transform.hpp>
-#include <glm/gtc/type_ptr.hpp>
-
 #include "ImuAPIWrapper.h"
 #include "device_interface.h"
-
-#if 0
-int get_mvmatrix(ClientData data, Tcl_Interp *interp, int objc, Tcl_Obj *CONST objv[])
-{
-    // Default Initializations
-    static bool flag = 1;
-    if (flag) {
-        //hid_init();
-        flag = 0;
-    }
-
-    // The rotation to the actual origin
-    static glm::quat qOri_ref;
-
-    // get the rotation quaternion received via USB. getQ() returns a pointer to the global 'q[0]'
-    glm::quat qOri = glm::quat();
-
-    // TODO: Note on 'w': Multiplying w by (-1) rotates the cube according to the sensor.
-    // For the actual implementation we want to use w*(+1) as we will be rotating the camera.
-
-    // Convert the quaternion to matrix (account for origin displacement)
-    glm::mat4 ori = glm::toMat4(qOri);
-
-    // FIXME: Workaround to set undefined variable Pgm(Debug)
-    Tcl_SetVar2Ex(interp, "Pgm", "Debug", Tcl_NewIntObj(0), 0);
-
-    // Allocate new tcl_ret object
-    Tcl_Obj* tcl_ret = Tcl_NewListObj(0, NULL);
-
-    // Append matrix colums as elements to tcl_ret object
-    const float *pMV = (const float*)glm::value_ptr(ori);
-    for (int i = 0; i < 16; i++) {
-        Tcl_ListObjAppendElement(interp, tcl_ret, Tcl_NewDoubleObj(pMV[i]));
-    }
-
-    // Return the complete tcl list
-    Tcl_SetObjResult(interp, tcl_ret);
-    return TCL_OK;
-}
-#endif
 
 // Imusensor_Init: Defines the entry for the application
 SENSOR_DLL int Imusensor_Init(Tcl_Interp *interp)
@@ -74,7 +29,7 @@ SENSOR_DLL int Imusensor_Init(Tcl_Interp *interp)
     }
 
     // Register C functions to be wrapped
-    Tcl_CreateObjCommand(interp, "imu_get_mvmatrix", get_mvmatrix,
+    Tcl_CreateObjCommand(interp, "imu_get_mvmatrix", device_get_mvmatrix,
         (ClientData)NULL, (Tcl_CmdDeleteProc *)NULL);
 #if 0
     Tcl_CreateObjCommand(interp, "device_init", device_init,

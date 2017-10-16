@@ -10,7 +10,7 @@
 
 #include <tcl.h>
 #include <string>
-#include <boost/thread.hpp>
+#include <boost/thread/thread.hpp>
 #include <glm/mat4x4.hpp>
 #include <DTrackSDK.hpp>
 

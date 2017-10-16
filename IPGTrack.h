@@ -1,17 +1,17 @@
 /*
- * usbInterface.h
+ * IPGTrack.h
  *
  *  Created on: Jun 8, 2017
  *      Author: may
  */
 
-#ifndef _USBINTERFACE_H_
-#define _USBINTERFACE_H_
+#ifndef _IPGTRACK_H_
+#define _IPGTRACK_H_
 
 #include <string>
-#include <glm/gtx/quaternion.hpp>
-#include <boost/thread/thread.hpp>
 #include <tcl.h>
+#include <boost/thread/thread.hpp>
+#include <glm/gtx/quaternion.hpp>
 
 // RawHID transfers floats as bytes
 typedef union data {
@@ -24,22 +24,24 @@ class IPGTrack : public DeviceBase {
 
 private:
     bool _running = false;
+    bool _export = false;
     boost::thread *_rxThread;
     glm::quat _quat_o = glm::quat(), _quat_r = glm::quat();
 
     void SetQuat(data_t &rx_data);
     void TaskLoop();
+    void Send(void *buf, int len, int timeout);
 
 public:
     IPGTrack();
     IPGTrack(std::string &cmd);
 
+    int Init();
     int Terminate();
-    void Send(void *buf, int len, int timeout);
+    int GetMVMatrix(Tcl_Interp* interp, Tcl_Obj* tcl_ret);
     bool Running();
 
-    int Init();
-    int GetMVMatrix(Tcl_Interp* interp, Tcl_Obj* tcl_ret);
+    void Export(bool state);
 };
 
-#endif /* _USBINTERFACE_H_ */
+#endif /* _IPGTRACK_H_ */

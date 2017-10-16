@@ -1,10 +1,14 @@
-#include <stdio.h>
-#include <stdint.h>
+/*
+ * IPGTrack.cpp
+ *
+ *  Created on: Oct 10, 2017
+ *      Author: may
+ */
 
-#include <tcl.h>
+#include <iostream>
+#include <stdint.h>
 #include <boost/chrono.hpp>
 #include <glm/glm.hpp>
-//#include <glm/gtx/quaternion.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
 
@@ -23,13 +27,18 @@ bool IPGTrack::Running()
     return _running;
 }
 
+void IPGTrack::Export(bool state)
+{
+    _export = state;
+}
+
 int IPGTrack::GetMVMatrix(Tcl_Interp* interp, Tcl_Obj* tcl_ret)
 {
     // Convert the quaternion to matrix (account for origin displacement)
-    glm::mat4 q = glm::toMat4(_quat_r * glm::inverse(_quat_o));
+    glm::mat4 rot = glm::toMat4(_quat_r * glm::inverse(_quat_o));
 
     // Append matrix colums as elements to tcl_ret object
-    const float *mvm = (const float*)glm::value_ptr(q);
+    const float *mvm = (const float*)glm::value_ptr(rot);
     for (int i = 0; i < 16; i++) {
         Tcl_ListObjAppendElement(interp, tcl_ret, Tcl_NewDoubleObj(mvm[i]));
     }
@@ -40,8 +49,6 @@ int IPGTrack::Init()
 {
     int ret = 0;
 
-    printf("start\n"); fflush(stdout);
-
     while(ret <= 0) {
         // C-based example is 16C0:0480:FFAB:0200
         ret = rawhid_open(1, 0x16C0, 0x0480, 0xFFAB, 0x0200);
@@ -49,12 +56,13 @@ int IPGTrack::Init()
             // Arduino-based example is 16C0:0486:FFAB:0200
             ret = rawhid_open(1, 0x16C0, 0x0486, 0xFFAB, 0x0200); // RawHID
             if (ret <= 0) {
-                printf("no rawhid device found\n");
+                std::cout << __func__ << ": No device found" << std::endl;
                 boost::this_thread::sleep_for(boost::chrono::seconds(2));
             }
         }
     }
-    printf("found rawhid device\n");
+
+    std::cout << __func__ << ": Found device, starting ..." << std::endl;
 
     // wait 10ms
     boost::this_thread::sleep_for(boost::chrono::milliseconds(10));
@@ -77,9 +85,9 @@ void IPGTrack::TaskLoop()
 {
     int ret;
     uint32_t ts = 0, timeout = 0;
-
-    // Msg the uC that application is online
     data_t tx_data = { 0 }, rx_data = { 0 };
+
+    // Msg the uC 'anything' to signalise application is online
     boost::thread(&IPGTrack::Send, this, &tx_data, 64, 100);
 
     while(_running) {
@@ -88,7 +96,7 @@ void IPGTrack::TaskLoop()
         ret = rawhid_recv(0, &rx_data.raw, sizeof(rx_data), 1);
 
         if (ret < 0) {
-            printf("\nerror reading, device went offline\n");
+            std::cout << __func__ << ": Error reading, device went offline" << std::endl;
             _running = false;
             rawhid_close(1);
             break;
@@ -96,36 +104,44 @@ void IPGTrack::TaskLoop()
             // Pass Usb buffer to programm
             SetQuat(rx_data);
         } else {
-            if (Debug) printf("Timeout!\n");
+            if (Debug) std::cout << __func__ << ": Timeout!" << std::endl;
             timeout++;
         }
 
         // On 'Spacebar': set the new reference origin
         if (get_keystroke() == 32) {
-            if (Debug) printf("\nReseting Camera\n");
+            if (Debug) std::cout << __func__ << ": Resetting camera" << std::endl;
             _quat_o = _quat_r;
         }
 
         if (get_micros() - ts >= 5000000) {
-            printf("timeout/s = %.1f\n", timeout/5.0f);
+            std::cout << __func__ << ": Timeout/s = " << timeout/5.0f << std::endl;
             ts = get_micros();
             timeout = 0;
+        }
+
+        if (_export) {
+            static exporter data;
+            // Convert the quaternion to matrix (account for origin displacement)
+            glm::quat q =_quat_r * glm::inverse(_quat_o);
+            data.export_data("ipgtrack_data.txt", glm::value_ptr(q), 4);
         }
 
         // Send the msg back
         //boost::thread thread(Send, rx_data.raw, 64, 10);
     }
 
-    printf("Thread terminated!\n");
+    std::cout << __func__ << ": Thread terminated!" << std::endl;
 }
 
 void IPGTrack::Send(void *buf, int len, int timeout)
 {
     int ret = rawhid_send(0, buf, len, timeout);
     if (ret > 0) {
-        if (Debug) printf("sendMsg at ms: %u\n", get_micros()/1000);
+        if (Debug)
+            std::cout << __func__ << ": Sending Msg at ms: " << get_micros()/1000.0f << std::endl;
     }else if (ret < 0) {
-        printf("Error Sending\n");
+        std::cout << __func__ << ": Error sending!" << std::endl;
     }
 }
 
