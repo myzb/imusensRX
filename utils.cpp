@@ -44,7 +44,7 @@ int get_micros()
     gettimeofday(&tv, NULL);
 
     // truncate secs since epoch to ~4min and add usecs
-    return ( 1000000 * (0x03F & tv.tv_sec) + tv.tv_usec);
+    return ( 1000000 * tv.tv_sec + tv.tv_usec);
 }
 
 #if defined(OS_LINUX) || defined(OS_MACOSX)
