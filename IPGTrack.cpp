@@ -9,6 +9,7 @@
 #include <stdint.h>
 #include <boost/chrono.hpp>
 #include <glm/glm.hpp>
+#include <glm/ext.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
 
@@ -36,6 +37,9 @@ int IPGTrack::GetMVMatrix(Tcl_Interp* interp, Tcl_Obj* tcl_ret)
 {
     // Convert the quaternion to matrix (account for origin displacement)
     glm::mat4 rot = glm::toMat4(_quat_r * glm::inverse(_quat_o));
+
+    // Print the current rotation as modelview matrix
+    if (Debug > 1) std::cout << glm::to_string(rot) << std::endl;
 
     // Append matrix colums as elements to tcl_ret object
     const float *mvm = (const float*)glm::value_ptr(rot);
