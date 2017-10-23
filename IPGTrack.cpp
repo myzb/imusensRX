@@ -35,14 +35,23 @@ void IPGTrack::Export(bool state)
 
 int IPGTrack::GetMVMatrix(Tcl_Interp* interp, Tcl_Obj* tcl_ret)
 {
-    // Convert the quaternion to matrix (account for origin displacement)
-    glm::mat4 rot = glm::toMat4(_quat_r * glm::inverse(_quat_o));
+    // Convert the quaternion to matrix (and apply correction for ref orientation)
+    glm::mat3 rot = glm::toMat3(_quat_r * glm::inverse(_quat_o));
 
-    // Print the current rotation as modelview matrix
+    glm::vec3 finalUp        = rot * glm::vec3(0.0f, 1.0f,  0.0f);
+    glm::vec3 finalForward   = rot * glm::vec3(0.0f, 0.0f, -1.0f);
+
+    // Position of left/right eye camera relative to origin
+    glm::vec3 pos            = glm::vec3(0.0f, 0.0f, 0.0f);
+
+    // Build modelview matrix
+    glm::mat4 view = glm::lookAtRH(pos, finalForward, finalUp);
+
+    // Print the current modelview matrix
     if (Debug > 1) std::cout << glm::to_string(rot) << std::endl;
 
     // Append matrix colums as elements to tcl_ret object
-    const float *mvm = (const float*)glm::value_ptr(rot);
+    const float *mvm = (const float*)glm::value_ptr(view);
     for (int i = 0; i < 16; i++) {
         Tcl_ListObjAppendElement(interp, tcl_ret, Tcl_NewDoubleObj(mvm[i]));
     }
