@@ -22,6 +22,8 @@ public:
     virtual int Init();
     virtual int Terminate();
     virtual int GetMVMatrix(Tcl_Interp* interp, Tcl_Obj* tcl_ret);
+    virtual int PostProcc();
+
     virtual void Export(bool state);
 };
 

@@ -49,8 +49,15 @@ int device_get_mvmatrix(ClientData data, Tcl_Interp *interp, int objc, Tcl_Obj *
     return TCL_OK;
 }
 
+int device_postproc(ClientData data, Tcl_Interp *interp, int objc, Tcl_Obj *CONST objv[])
+{
+    device->PostProcc();
+    return TCL_OK;
+}
+
 int device_init(ClientData data, Tcl_Interp *interp, int objc, Tcl_Obj *CONST objv[])
 {
+    // TODO: switch-case to initialise desired device
     device = new IPGTrack();
     device->Init();
     return TCL_OK;
