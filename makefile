@@ -9,7 +9,7 @@ MKFILE_PATH        := $(abspath $(lastword $(MAKEFILE_LIST)))
 ROOT_DIR           := $(patsubst %/,%,$(dir $(MKFILE_PATH)))
 MINGW_INSTALL_DIR  := /usr/i686-w64-mingw32
 DEVEL_DIR          := /local/work.may/Development_Linux
-CM_ROOT_DIR        := /local/work.may/CarMaker
+CM_ROOT_DIR        := /local/work.may/CarMaker/linux-6.0.3
 OBJ_DIR            := out
 RM                 := rm -rf
 
