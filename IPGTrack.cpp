@@ -135,9 +135,14 @@ void IPGTrack::TaskLoop()
 
         if (_export) {
             static exporter data;
+#if 0
             // Convert the quaternion to matrix (account for origin displacement)
             glm::quat q =_quat_r * glm::inverse(_quat_o);
             data.export_data("ipgtrack_data.txt", glm::value_ptr(q), 4);
+#else
+            // Export all the received data
+            data.export_data("ipgtrack_data.txt", rx_data.num_f, 16);
+#endif
         }
 
         // Send the msg back
