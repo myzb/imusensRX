@@ -20,18 +20,22 @@
 
 #include "utils.h"
 
-int exporter::export_data(std::string filename, float *data, int data_len)
+exporter::exporter(std::string filename)
 {
-    static std::ofstream myfile;
-    if (!myfile.is_open())
-        myfile.open(filename, std::ios::trunc | std::ios::out);
+    _myfile = std::ofstream(filename, std::ios::trunc | std::ios::out);
+}
 
-    if (myfile.is_open()) {
-        myfile << get_micros();
+int exporter::export_data(float *data, int data_len)
+{
+//    if (!myfile.is_open())
+//        myfile.open(filename, std::ios::trunc | std::ios::out);
+
+    if (_myfile.is_open()) {
+        _myfile << get_micros();
         for (int i = 0; i < data_len; i++)
-             myfile << "\t" << data[i];
+             _myfile << "\t" << data[i];
 
-        myfile << std::endl;
+        _myfile << std::endl;
     } else {
         std::cout << "Unable to open file\n";
     }

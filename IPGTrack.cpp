@@ -8,8 +8,8 @@
 #include <iostream>
 #include <stdint.h>
 #include <boost/chrono.hpp>
-#include <glm/glm.hpp>
 #include <glm/ext.hpp>
+#include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
 
@@ -23,9 +23,13 @@ static const int Debug = 0;
 IPGTrack::IPGTrack () : DeviceBase() { }
 IPGTrack::IPGTrack (std::string &cmd) : DeviceBase(cmd) { }
 
-bool IPGTrack::Running()
+void IPGTrack::ResetCamera()
 {
-    return _running;
+    if (Debug) std::cout << __func__ << ": Resetting camera" << std::endl;
+
+    // Reset the camera and start output to IPGMovie
+    _quat_o = _quat_r;
+    _start = true;
 }
 
 void IPGTrack::Export(bool state)
@@ -39,7 +43,7 @@ int IPGTrack::GetMVMatrix(Tcl_Interp* interp, Tcl_Obj* tcl_ret)
     glm::mat3 rot = glm::toMat3(_quat_r * glm::inverse(_quat_o));
 
     glm::vec3 finalUp        = rot * glm::vec3(0.0f, 1.0f,  0.0f);
-    glm::vec3 finalForward   = rot * glm::vec3(0.0f, 0.0f, -1.0f);
+    glm::vec3 finalForward   = rot * glm::vec3(0.0f, 0.0f,  -1.0f);
 
     // Position of left/right eye camera relative to origin
     glm::vec3 pos            = glm::vec3(0.0f, 0.0f, 0.0f);
@@ -49,6 +53,9 @@ int IPGTrack::GetMVMatrix(Tcl_Interp* interp, Tcl_Obj* tcl_ret)
 
     // Print the current modelview matrix
     if (Debug > 1) std::cout << glm::to_string(rot) << std::endl;
+
+    // return an identity matrix
+    if (!_start) view = glm::mat4();
 
     // Append matrix colums as elements to tcl_ret object
     const float *mvm = (const float*)glm::value_ptr(view);
@@ -89,8 +96,8 @@ void IPGTrack::SetQuat(data_t &rx_data)
     // TODO: Note on 'w': Multiplying w by (-1) rotates the cube according to the sensor.
     // For the actual implementation we want to use w*(+1) as we will be rotating the camera.
     _quat_r = glm::quat(rx_data.num_f[0]*(+1.0f),    /* CM_w = +NED_w */
-                        rx_data.num_f[1]*(+1.0f),    /* CM_x = +NED_x */
-                        rx_data.num_f[2]*(-1.0f),    /* CM_y = -NED_y */
+                        rx_data.num_f[1]*(-1.0f),    /* CM_x = -NED_x */
+                        rx_data.num_f[2]*(+1.0f),    /* CM_y = +NED_y */
                         rx_data.num_f[3]*(-1.0f));   /* CM_z = -NED_z */
 }
 
@@ -103,7 +110,7 @@ void IPGTrack::TaskLoop()
     // Msg the uC 'anything' to signalise application is online
     boost::thread(&IPGTrack::Send, this, &tx_data, 64, 100);
 
-    while(_running) {
+    while (_running) {
 
         // Get Raw HID packet, set timeout to 1ms. This caps the loop speed at 1ms
         ret = rawhid_recv(0, &rx_data.raw, sizeof(rx_data), 1);
@@ -121,12 +128,6 @@ void IPGTrack::TaskLoop()
             timeout++;
         }
 
-        // On 'Spacebar': set the new reference origin
-        if (get_keystroke() == 32) {
-            if (Debug) std::cout << __func__ << ": Resetting camera" << std::endl;
-            _quat_o = _quat_r;
-        }
-
         if (get_micros() - ts >= 5000000) {
             std::cout << __func__ << ": Timeout/s = " << timeout/5.0f << std::endl;
             ts = get_micros();
@@ -134,15 +135,14 @@ void IPGTrack::TaskLoop()
         }
 
         if (_export) {
-            static exporter data;
 #if 0
-            // Convert the quaternion to matrix (account for origin displacement)
+            // Account for origin displacement
             glm::quat q =_quat_r * glm::inverse(_quat_o);
-            data.export_data("ipgtrack_data.txt", glm::value_ptr(q), 4);
-#else
-            // Export all the received data
-            data.export_data("ipgtrack_data.txt", rx_data.num_f, 16);
+            std::copy(glm::value_ptr(q), glm::value_ptr(q)+4, rx_data.num_f);
 #endif
+            // Export all the received data
+            static exporter data("ipgtrack_data.txt");
+            data.export_data(rx_data.num_f, 16);
         }
 
         // Send the msg back
@@ -167,6 +167,7 @@ int IPGTrack::Terminate()
 {
     _running = false;
     _rxThread->join(); // join the thread and wait for it to return
+    _rxThread = nullptr;
     rawhid_close(1);
     return 0;
 }

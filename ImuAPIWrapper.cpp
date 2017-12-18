@@ -32,6 +32,8 @@ SENSOR_DLL int Imusensor_Init(Tcl_Interp *interp)
     Tcl_CreateObjCommand(interp, "imu_get_mvmatrix", device_get_mvmatrix,
         (ClientData)NULL, (Tcl_CmdDeleteProc *)NULL);
 #if 0
+    Tcl_CreateObjCommand(interp, "device_cam_reset", device_cam_reset,
+        (ClientData)NULL, (Tcl_CmdDeleteProc *)NULL);
     Tcl_CreateObjCommand(interp, "device_postproc", device_postproc,
         (ClientData)NULL, (Tcl_CmdDeleteProc *)NULL);
     Tcl_CreateObjCommand(interp, "device_init", device_init,
@@ -56,7 +58,8 @@ SENSOR_DLL int Imusensor_Unload(Tcl_Interp *interp, int flags)
 
     Tcl_DeleteCommand(interp, "imu_get_mvmatrix");
 #if 0
-    Tcl_DeleteCommand(interp, "device_do_postproc");
+    Tcl_DeleteCommand(interp, "device_cam_reset");
+    Tcl_DeleteCommand(interp, "device_postproc");
     Tcl_DeleteCommand(interp, "device_init");
     Tcl_DeleteCommand(interp, "device_terminate");
     Tcl_DeleteCommand(interp, "device_close");

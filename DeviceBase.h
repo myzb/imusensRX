@@ -24,6 +24,7 @@ public:
     virtual int GetMVMatrix(Tcl_Interp* interp, Tcl_Obj* tcl_ret);
     virtual int PostProcc();
 
+    virtual void ResetCamera();
     virtual void Export(bool state);
 };
 

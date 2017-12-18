@@ -24,8 +24,9 @@ class IPGTrack : public DeviceBase {
 
 private:
     bool _running = false;
-    bool _export = false;
-    boost::thread *_rxThread;
+    bool _start   = false;
+    bool _export  = false;
+    boost::thread *_rxThread = nullptr;
     glm::quat _quat_o = glm::quat(), _quat_r = glm::quat();
 
     void SetQuat(data_t &rx_data);
@@ -39,9 +40,8 @@ public:
     int Init();
     int Terminate();
     int GetMVMatrix(Tcl_Interp* interp, Tcl_Obj* tcl_ret);
-    bool Running();
-
     void Export(bool state);
+    void ResetCamera();
 };
 
 #endif /* _IPGTRACK_H_ */

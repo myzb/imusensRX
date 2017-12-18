@@ -9,13 +9,19 @@
 #define _UTILS_H_
 
 #include <string>
+#include <fstream>
 
 int get_micros();
 char get_keystroke(void);
 
+// The exporter class
 class exporter {
+private:
+    std::ofstream _myfile;
+
 public:
-int export_data(std::string filename, float *data, int data_len);
+    exporter(std::string filename);
+    int export_data(float *data, int data_len);
 };
 
 #endif /* _UTILS_H_ */

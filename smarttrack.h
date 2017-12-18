@@ -15,33 +15,37 @@
 #include <DTrackSDK.hpp>
 
 class SmartTrack : public DeviceBase {
+
 private:
+    bool _running = false;
+    bool _export  = false;
+    bool _start   = false;
 
-    // Smarttrack variables
-    DTrackSDK*          _dt;
-    DTrack_Body_Type_d  _body;               // buffer holding pos/rot data
+    DTrackSDK*         _dt = nullptr;
+    DTrack_Body_Type_d _body = { 0 };
+    boost::thread*     _rxThread = nullptr;
+    boost::mutex       _rxdata;
 
-    struct stConfig_t {
-        char *pSrcIpAddr, *pDestIpAddr, *pChNum;
-        int  srcPort, destPort;
-    } st;
+    glm::vec3 _pos_o = glm::vec3(), _pos_r = glm::vec3();
+    glm::mat3 _dcm_o = glm::mat3(), _dcm_r = glm::mat3();
+    glm::mat4 view, proj;
 
-    // OpenGL variables
-    glm::mat4 view, proj; // Current view and proj matrices
+    struct stinfo_t {
+        std::string src_ip, dst_ip, ch_num;
+        int src_port, dst_port;
+    } _st;
 
-    // Thread variables
-    bool                _run;
-    boost::thread*      _udprx_thread;
-    boost::mutex        _rxdata;
+    void TaskLoop();
 
-    void* udprx_func(DTrackSDK* dt);   // Thread function
 public:
-    // Public functions
+    SmartTrack();
     SmartTrack(std::string &name);
 
-    int Init(Tcl_Interp* interp, Tcl_Obj* tcl_ret, char* pSrcIpAddr, char* pDestIpAddr, char* pChNum);
-    int GetMVMatrix(Tcl_Interp* interp, Tcl_Obj* tcl_ret);
+    int Init();
     int Terminate();
+    int GetMVMatrix(Tcl_Interp* interp, Tcl_Obj* tcl_ret);
+    void Export(bool state);
+    void ResetCamera();
 };
 
 #endif /* _SMARTTRACK_H_ */

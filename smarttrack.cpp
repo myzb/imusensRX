@@ -6,148 +6,130 @@
  */
 
 #include <iostream>
-#include <complex>
-
+#include <glm/ext.hpp>
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
-#include <glm/gtx/quaternion.hpp>
-#include <boost/circular_buffer.hpp>
 #include <DTrackSDK.hpp>
 
-// Include project headers
+#include "utils.h"
 #include "DeviceBase.h"
 #include "smarttrack.h"
 
+static const int Debug = 1;
 
-static const int debug = 0;
+SmartTrack::SmartTrack() : DeviceBase()
+{
+    // TODO: these will be passed from TCL
+    std::string dst_addr = "10.0.1.15:50105";
+    std::string src_addr = "10.0.8.5:50105";
+    std::string ch_num   = "ch03";
 
-// Configuration Flags
-#define ST_DEBUG
-#define NO_OGL
-#define STORE_DATA
+    // Extract the src/dest IP address and port from input string
+    short separator = src_addr.find_first_of(':');
+    std::string src_port = src_addr.substr(separator+1, src_addr.npos);
+    std::string src_ip   = src_addr.substr(0,separator);
 
-SmartTrack::SmartTrack(std::string &name) : DeviceBase(name) {
-    _dt = nullptr;
-    _udprx_thread = nullptr;
-    _run = false;
+    separator = dst_addr.find_first_of(':');
+    std::string dst_port = dst_addr.substr(separator+1, dst_addr.npos);
+    std::string dst_ip   = dst_addr.substr(0,separator);
+
+    // Store the com/port configurations
+    _st = { src_ip, dst_ip, ch_num, std::stoi(src_port, nullptr), std::stoi(dst_port, nullptr) };
+
+
 }
 
-void* SmartTrack::udprx_func(DTrackSDK* _dt)
+SmartTrack::SmartTrack(std::string &name) : DeviceBase(name) { }
+
+void SmartTrack::Export(bool state)
 {
-    if (debug)
-        printf("Executing %s::Thread \n", __FUNCTION__); fflush(stdout);
+    _export = state;
+}
 
-    while (_run) {
-#ifndef ST_DEBUG
+void SmartTrack::ResetCamera()
+{
+    if (Debug) std::cout << __func__ << ": Resetting camera" << std::endl;
+    _dcm_o = _dcm_r;
+}
+
+void SmartTrack::TaskLoop()
+{
+    if (Debug) std::cout << "Executing " << __func__ << std::endl;
+
+    bool silence_output = false; // debug variable
+
+    while (_running) {
         // Poll UDP port for new data
-        if (_dt->receive() && (debug == 2))
-            printf("Received something\n"); fflush(stdout);
-
+        if (_dt->receive() && (Debug == 2))
+            std::cout << "Received UDP package" << std::endl;
 
         // Don't start copying new data until a body is found
         if (_dt->getNumBody() == 0) {
             continue;
-        } else if (_dt->getNumBody() != 1) {
-            printf("Found %d bodies! tracking _body id %d only\n",
-                _dt->getNumBody(), _dt->getBody(0)->id);
-            fflush(stdout);
+        } else if ((_dt->getNumBody() > 0) && (Debug == 2)) {
+            std::cout << "Found " << _dt->getNumBody() << " bodies! tracking _body id "
+                      << _dt->getBody(0)->id << std::endl;
         }
 
-        static bool print = true;       // print once flag
-        static int ts = 0;              // timestamp when CalTimeDelta got called
-
-        // Quality of -1 means we lost track of the body. Out of track body has rot/loc of "0"
+        // Quality -1 = lost track of body
         if (_dt->getBody(0)->quality >= 0) {
+
+            if (Debug == 2) std::cout << "Reading..." << std::endl;
+
+            _body = *_dt->getBody(0); // Get tracking data
 
             // Mutex lock
             _rxdata.lock();
 
-            // Save ts to .t_input and delta (to old ts) to .d_rx_loop
-            ts = TimeUtils::CalcTimeDelta(ts, &frame_new.t_input, &frame_new.d_rx_loop);
+            std::copy(_body.rot, _body.rot+9, glm::value_ptr(_dcm_r)); // DCM
+            std::copy(_body.loc, _body.loc+3, glm::value_ptr(_pos_r)); // Position
 
-            frame_new.num = _dt->getFrameCounter();                      // Frame number
-            frame_new.t_capture  = (int)(_dt->getTimeStamp() * 1000.0f); // IR-flash fire time [ms]
-            _body = *_dt->getBody(0);                                     // get tracking data
-
-#ifdef STORE_DATA
-            FileUtils::ExportRotData(&_body.rot[0], 9);
-            FileUtils::ExportLocData(&_body.loc[0], 3);
-#endif /*STORE_DATA */
+            if (_export) {
+                static exporter data("smarttrack_data.txt");
+                data.export_data(glm::value_ptr(_dcm_r), 9);
+            }
 
             // Mutex unlock
             _rxdata.unlock();
 
-            print = true;                           // If we lose track msg will be printed once
-        } else if (debug && print) {
-            printf("Lost track of _body id %d\n", _dt->getBody(0)->id); fflush(stdout);
-            print = false;                      // Silence until next lose of track
+            silence_output = false;
+
+        } else if (Debug && !silence_output) {
+            std::cout << "Lost track of _body id "<<  _dt->getBody(0)->id
+                      << " quality = " << _dt->getBody(0)->quality << std::endl;
+            silence_output = true;
         }
-#else
-        boost::this_thread::sleep(boost::posix_time::milliseconds(16)); // Simulate polling delay
-        _rxdata.lock();
-//        TimeUtils::GetTimeSinceMidnight(&frame_new.t_input);    // The time this frame arrived
-//        frame_new.num = _dt->getMessageFrameNr();                // The frame number
-//        frame_new.t_capture  = (int)_dt->getTimeStamp();  // The time the IR flash fired
-        // _body = 0
-        // Mutex unlock
-        _rxdata.unlock();
-#endif /* ST_DEBUG */
     }
-    if (debug)
-        printf("%s::Thread terminated\n", __FUNCTION__); fflush(stdout);
-    return 0;
+
+    if (Debug) std::cout << __func__ <<"::Thread terminated" << std::endl;
+
+    return;
 }
 
-int SmartTrack::Init(Tcl_Interp* interp, Tcl_Obj* tcl_ret, char* pSrcIpAddr,
-                     char* pDestIpAddr, char* pChNum)
+int SmartTrack::Init()
 {
-    printf("Executing %s \n", __FUNCTION__); fflush(stdout);
+    std::cout << "Executing " << __func__ << std::endl;
 
-    int err_code = 0;
-    _run = false;        // ends the udp_rx thread loop
-
-    // Extract the src/dest IP address and port from input string
-    short divPos;
-    std::string ipAddr = pSrcIpAddr;
-    divPos = ipAddr.find_first_of(':');
-    *(pSrcIpAddr + divPos) = '\0';                  // 'Break' the string at pos of ':'
-    char* pSrcPort = pSrcIpAddr + divPos + 1;
-
-    ipAddr = pDestIpAddr;
-    divPos = ipAddr.find_first_of(':');
-    *(pDestIpAddr + divPos) = '\0';
-    char* pDestPort = pDestIpAddr + divPos + 1;
-
-    // Store the com/port configurations
-    st = { pSrcIpAddr,
-           pDestIpAddr,
-           pChNum,
-           atoi(pSrcPort),
-           atoi(pDestPort),
-    };
-
-    if (debug) {
-        printf("SmartTrack IP address '%s', port '%d'.\n", st.pSrcIpAddr, st.srcPort);
-        printf("Data rx IP address '%s', port '%d'.\n", st.pDestIpAddr, st.destPort);
-        fflush(stdout);
+    if (Debug) {
+        std::cout << "Src  IP address: " << _st.src_ip << " port " << _st.src_port << std::endl;
+        std::cout << "Dest IP address: " << _st.dst_ip << " port " << _st.dst_port << std::endl;
     }
-#ifndef ST_DEBUG
-    // Init library
-    if (st.srcPort != 50105)
-        printf("WARNING: DTrack2 port must be 50105\n");
 
-    _dt = new DTrackSDK(st.pSrcIpAddr,           /* IP address of ARTtrack */
-                       st.srcPort,              /* Port number of ARTtrackÂŽ*/
-                       st.destPort,             /* Data rx port number to rx data from ART-Track */
+    // Init library
+    if (_st.src_port != 50105)
+        std::cout << "WARNING: DTrack2 port must be 50105" << std::endl;
+
+    _dt = new DTrackSDK(_st.src_ip,             /* IP address of Strack */
+                       _st.src_port,            /* Port number of Strack */
+                       _st.dst_port,            /* Data rx port number to rx data from STrack */
                        DTrackSDK::SYS_DTRACK_2, /* ARTtrack type */
                        32768,                   /* UDP rx buffer size (in bytes) */
                        20000,                   /* Timout to rx data (in us) */
-                       5000000);                /* Timeout for std ARTtrack replies (in us) */
+                       5000000);                /* Timeout for std STrack replies (in us) */
 
     if (!_dt->isLocalDataPortValid()) {
-        if (debug)
-        printf("DTrack init error\n"); fflush(stdout);
+        if (Debug) std::cout << "DTrack init error" << std::endl;
         delete _dt;
         return -2;
     }
@@ -157,173 +139,135 @@ int SmartTrack::Init(Tcl_Interp* interp, Tcl_Obj* tcl_ret, char* pSrcIpAddr,
 
     // Configure SmartTrack
     // Set channel, protocol, destination IP (localhost IP address) and the portNum
-    std::stringstream dtrack2Cmd;
-    dtrack2Cmd << "dtrack2 set output net " << st.pChNum << " udp " << st.pDestIpAddr
-               << " " << st.destPort;
-    if (debug)
-        printf("Sending command string: %s\n", dtrack2Cmd.str()); fflush(stdout);
+    std::stringstream dtrack2_cmd;
+    dtrack2_cmd << "dtrack2 set output net " << _st.ch_num << " udp " << _st.dst_ip
+                << " " << _st.dst_port;
 
-    err_code = _dt->sendDTrack2Command(dtrack2Cmd.str(), NULL);
+    if (Debug) std::cout << "Sending command string: " << dtrack2_cmd.str() << std::endl;
+
+    int err_code = _dt->sendDTrack2Command(dtrack2_cmd.str(), NULL);
 
     // Clear the sstream
-    dtrack2Cmd.str("");
-    dtrack2Cmd.clear();
+    dtrack2_cmd.str("");
+    dtrack2_cmd.clear();
 
     if (err_code < 0) {
-        printf("Error setting destination IP address for SmartTrack data.\n"); fflush(stdout);
+        std::cout << "Error, Smarttrack answered with error code: " << err_code << std::endl;
         delete _dt;
         return -2;
     }
 
     // Set the data to be transfer on channel (chNum) and activate the channel
-    dtrack2Cmd << "dtrack2 set output active " << st.pChNum << " " << "all" << " " << "yes";
-    if (debug)
-        printf("Sending command string: %s\n", dtrack2Cmd.str()); fflush(stdout);
+    dtrack2_cmd << "dtrack2 set output active " << _st.ch_num << " " << "all" << " " << "yes";
+    if (Debug)
+        std::cout << "Sending command string: " << dtrack2_cmd.str() << std::endl;
 
-    err_code = _dt->sendDTrack2Command(dtrack2Cmd.str(), NULL);
+    err_code = _dt->sendDTrack2Command(dtrack2_cmd.str(), NULL);
 
     // Clear the sstream
-    dtrack2Cmd.str("");
-    dtrack2Cmd.clear();
+    dtrack2_cmd.str("");
+    dtrack2_cmd.clear();
 
     if (err_code < 0) {
-        printf("Error setting params and active output channel.\n"); fflush(stdout);
+        std::cout << "Error setting params and active output channel." << std::endl;
         delete _dt;
         return -2;
     }
 
-    if (debug)
-        printf("Connected to SmartTrack and listening for data on port '%d'.\n", _dt->getDataPort());
+    if (Debug)
+        std::cout << "Connected to SmartTrack. Listening for data on port " << _dt->getDataPort()
+                  << std::endl;
 
     if(_dt->startMeasurement()) {
         // set the udp_rx thread loop flag
-        run = true;
-        if (debug)
-            printf("Started measurement\n"); fflush(stdout);
+        _running = true;
+        if (Debug)
+            std::cout << "Started measurement" << std::endl;
     } else {
-        if (debug) {
-            printf("Error starting measurement."
-                   "Make sure SmartTrack is not currently being accessed by another instance.\n");
-            fflush(stdout);
+        if (Debug) {
+            std::cout << "Error starting measurement.\n"
+                         "Make sure SmartTrack is not currently being accessed by another instance"
+                      << std::endl;
         }
         delete _dt;
         return -2;
     }
-#else
-    // Init library
-    _dt = new DTrackSDK(st.srcPort);
-    //  st.srcPort,              /* Port number of Smattrack */
-    //  st.destPort,             /* Data rx port number to rx data from ART-Track */
-    //  DTrackSDK::SYS_DTRACK_2, /* ARTtrack type */
-    //  32768,                   /* UDP rx buffer size (in bytes) */
-    //  20000,                   /* Timout to rx data (in us) */
-    //  5000000);                /* Timeout for std ARTtrack replies (in us) */
-    _run = true;
-#endif /* ST_DEBUG */
-
-    // Set the initial value to 0
-    memset(_body.loc,0,3);
-    memset(_body.rot,0,9);
 
     // Create and start the thread function
-    _udprx_thread = new boost::thread(&SmartTrack::udprx_func, this, SmartTrack::_dt);
+    _rxThread = new boost::thread(boost::bind( &SmartTrack::TaskLoop, this));
 
     return 0;
 }
 
 int SmartTrack::GetMVMatrix(Tcl_Interp* interp, Tcl_Obj* tcl_ret)
 {
-    if (debug == 2)
-        printf("Executing %s \n", __FUNCTION__); fflush(stdout);
+    if (Debug == 2)
+        std::cout << "Executing " << __func__ << std::endl;
 
     // Mutex lock
     _rxdata.lock();
 
-    DTrack_Body_Type_d* pBody = &_body;
-
-#ifndef TW_DEBUG
-    // Copy and transform the ART data into OVR math representation
-    glm::vec3 position = glm::vec3((float)pBody->loc[0], (float)pBody->loc[1], (float)pBody->loc[2]);
-
-    glm::mat3 rotation = glm::mat3(
-        (float)pBody->rot[0], (float)pBody->rot[3], (float)pBody->rot[6],
-        (float)pBody->rot[1], (float)pBody->rot[4], (float)pBody->rot[7],
-        (float)pBody->rot[2], (float)pBody->rot[5], (float)pBody->rot[8]);
-#else
-    // dummy position
-    Vector3f position = Vector3f(0.0f, 0.0f, 0.0f);
-
-    // dummy rotation
-    float phi = PI / 60, theta = 0, psi = 0;
-
-    Matrix3f rotation = Matrix3f(cosf(phi)*cosf(theta), -sinf(phi)*cosf(theta), sinf(theta),
-        sinf(phi)*cosf(psi) + cosf(phi)*sinf(theta)*sinf(psi), cosf(phi)*cosf(psi) - sinf(phi)*sinf(theta)*sinf(psi), -cosf(theta)*sinf(psi),
-        sinf(phi)*sinf(psi) - cosf(phi)*sinf(theta)*cosf(psi), cosf(phi)*sinf(psi) + sinf(phi)*sinf(theta)*cosf(psi), cosf(theta)*cosf(psi));
-#endif /* TW_DEBUG */
+    // Substract origin from current data
+    glm::mat3 rot = _dcm_r * glm::inverse(_dcm_o);
+    glm::vec3 pos = _pos_r - _pos_o;
 
     // Mutex unlock
     _rxdata.unlock();
 
-    // Convert mm to m
-    position = glm::vec3(0.001f) * position;
+    glm::vec3 finalUp      = rot * glm::vec3(0.0f, 1.0f,  0.0f);
+    glm::vec3 finalForward = rot * glm::vec3(0.0f, 0.0f, -1.0f);
 
-    // Remap the position to openGL coordinates
-    position = glm::vec3(-position.y, position.z, -position.x);
+    // Build modelview matrix
+    glm::mat4 view = glm::lookAtRH(pos, finalForward, finalUp);
 
-    // Convert the 3x3 rotation matrix into a quaternion
-    glm::quat q = glm::toQuat(rotation);
+    // Print the current modelview matrix
+    if (Debug > 1) std::cout << glm::to_string(rot) << std::endl;
 
-    // Remap the quaternion to OpenGL coordinates
-    glm::quat  orientation = glm::quat(-q.x, q.z, -q.x, q.w);
-#if 0
-    // Transpose the matrices to return elements columnwise
-    float* pView = (float*)glm::value_ptr(view);
+    // return an identity matrix
+    if (!_start) view = glm::mat4();
 
-    // Append matrix elements to tcl return list
-    for (unsigned int i = 0; i < 16; i++)
-        Tcl_ListObjAppendElement(interp, tcl_ret, Tcl_NewDoubleObj(pView[i]));
-#endif
+    // Append matrix colums as elements to tcl_ret object
+    const float *mvm = (const float*)glm::value_ptr(view);
+    for (int i = 0; i < 16; i++) {
+        Tcl_ListObjAppendElement(interp, tcl_ret, Tcl_NewDoubleObj(mvm[i]));
+    }
+
     return 0;
 }
 
 int SmartTrack::Terminate()
 {
-    if (debug)
-        printf("Executing %s \n", __FUNCTION__); fflush(stdout);
+    if (Debug)
+        std::cout << "Executing " << __func__ << std::endl;
 
-    // clean up:
+    // Clean up:
     if (_dt != nullptr) {
 
-#ifndef ST_DEBUG
         // Bring the thread to a controlled end
-        run = !_dt->stopMeasurement();
-#else
-        _run = 0;
-#endif /* ST_DEBUG */
+        _running = !_dt->stopMeasurement();
 
-        // Deactivate data output channel (chNum)
-        std::stringstream dtrack2Cmd;
-        dtrack2Cmd << "dtrack2 set output active " << st.pChNum << " " << "all" << " " << "no";
-        if (debug)
-            printf("Sending command string: %s\n", dtrack2Cmd.str()); fflush(stdout);
+        // Deactivate data output channel (ch_num)
+        std::stringstream dtrack2_cmd;
+        dtrack2_cmd << "dtrack2 set output active " << _st.ch_num << " " << "all" << " " << "no";
+        if (Debug)
+            std::cout << "Sending command string: " << dtrack2_cmd.str() << std::endl;
 
-        if (_dt->sendDTrack2Command(dtrack2Cmd.str(), NULL) < 0) {
-            printf("Error deactivating output channel: %s.\n", st.pChNum);
-            fflush(stdout);
+        if (_dt->sendDTrack2Command(dtrack2_cmd.str(), NULL) < 0) {
+            std::cout << "Error deactivating output channel: " << _st.ch_num << std::endl;
         }
 
         // Clear the sstream
-        dtrack2Cmd.str("");
-        dtrack2Cmd.clear();
+        dtrack2_cmd.str("");
+        dtrack2_cmd.clear();
 
-        // join and wait for the thread to return
-        _udprx_thread->join();
+        // Join and wait for the thread to return
+        _rxThread->join();
 
-        delete _udprx_thread;
+        delete _rxThread;
         delete _dt;
-        _dt = nullptr;
-        _udprx_thread = nullptr;
-
+        _dt       = nullptr;
+        _rxThread = nullptr;
     }
+
     return 0;
 }
