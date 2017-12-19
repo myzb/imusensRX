@@ -18,7 +18,7 @@
 #include "utils.h"
 #include "IPGTrack.h"
 
-static const int Debug = 0;
+static const int Debug = 1;
 
 IPGTrack::IPGTrack () : DeviceBase() { }
 IPGTrack::IPGTrack (std::string &cmd) : DeviceBase(cmd) { }
@@ -113,7 +113,7 @@ void IPGTrack::TaskLoop()
     while (_running) {
 
         // Get Raw HID packet, set timeout to 1ms. This caps the loop speed at 1ms
-        ret = rawhid_recv(0, &rx_data.raw, sizeof(rx_data), 1);
+        ret = rawhid_recv(0, &rx_data.raw, sizeof(rx_data), 5);
 
         if (ret < 0) {
             std::cout << __func__ << ": Error reading, device went offline" << std::endl;

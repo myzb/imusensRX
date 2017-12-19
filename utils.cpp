@@ -27,9 +27,6 @@ exporter::exporter(std::string filename)
 
 int exporter::export_data(float *data, int data_len)
 {
-//    if (!myfile.is_open())
-//        myfile.open(filename, std::ios::trunc | std::ios::out);
-
     if (_myfile.is_open()) {
         _myfile << get_micros();
         for (int i = 0; i < data_len; i++)

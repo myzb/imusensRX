@@ -71,7 +71,7 @@ LIB_DIRS     := $(addprefix -L,$(LIB_DIRS))
 CC       := i686-w64-mingw32-gcc
 CXX      := i686-w64-mingw32-g++
 OUT_DIR  := $(OBJ_DIR)
-EXT      := dll
+EXT      := so
 
 CXXFLAGS := \
 	-DOS_WINDOWS -D_WIN32 -DBUILD_DLL \

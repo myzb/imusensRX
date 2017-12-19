@@ -16,7 +16,7 @@
 #include "DeviceBase.h"
 #include "smarttrack.h"
 
-static const int Debug = 1;
+static const int Debug = 0;
 
 SmartTrack::SmartTrack() : DeviceBase()
 {
@@ -36,8 +36,6 @@ SmartTrack::SmartTrack() : DeviceBase()
 
     // Store the com/port configurations
     _st = { src_ip, dst_ip, ch_num, std::stoi(src_port, nullptr), std::stoi(dst_port, nullptr) };
-
-
 }
 
 SmartTrack::SmartTrack(std::string &name) : DeviceBase(name) { }

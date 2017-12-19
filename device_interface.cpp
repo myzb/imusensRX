@@ -6,6 +6,9 @@
  */
 
 #include <stdlib.h>
+#if defined(OS_WINDOWS)
+#include <windows.h>
+#endif
 #include <boost/thread/once.hpp>
 
 #include "device_interface.h"
@@ -60,8 +63,12 @@ int device_get_mvmatrix(ClientData data, Tcl_Interp *interp, int objc, Tcl_Obj *
 
     // On 'Spacebar': set the new camera origin
     // FIXME: Remove once IPGMovie implements this
+#if defined(OS_WINDOWS)
+    if (GetAsyncKeyState(VK_SPACE)) {
+#else
     if (get_keystroke() == 32) {
-        device->ResetCamera();
+#endif
+    device->ResetCamera();
         st->ResetCamera();
     }
 
