@@ -9,7 +9,7 @@
 #include <iostream>
 #include <stdio.h>
 #include <stdint.h>
-#include <sys/time.h>
+#include <chrono>
 
 #if defined(OS_LINUX) || defined(OS_MACOSX)
 #include <sys/ioctl.h>
@@ -44,11 +44,16 @@ int exporter::export_data(float *data, int data_len)
 
 int get_micros()
 {
-    struct timeval tv;
-    gettimeofday(&tv, NULL);
+    auto now = std::chrono::system_clock::now();
 
-    // truncate secs since epoch to ~4min and add usecs
-    return ( 1000000 * tv.tv_sec + tv.tv_usec);
+    time_t tnow = std::chrono::system_clock::to_time_t(now);
+    tm *date = std::localtime(&tnow);
+    date->tm_hour = 0;
+    date->tm_min = 0;
+    date->tm_sec = 0;
+    auto midnight = std::chrono::system_clock::from_time_t(std::mktime(date));
+    auto diff = std::chrono::duration_cast<std::chrono::microseconds>(now - midnight);
+    return diff.count();
 }
 
 #if defined(OS_LINUX) || defined(OS_MACOSX)
