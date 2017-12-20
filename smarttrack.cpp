@@ -85,12 +85,11 @@ void SmartTrack::TaskLoop()
 
             if (_export) {
                 static exporter data("smarttrack_data.txt");
-#if 0
-
-                data.export_data(glm::value_ptr(_dcm_r), 9);
-#else
+#if 1
                 glm::mat3 dcm = _dcm_r * glm::inverse(_dcm_o);
                 data.export_data(glm::value_ptr(dcm), 9);
+#else
+                data.export_data(glm::value_ptr(_dcm_r), 9);
 #endif
             }
 
