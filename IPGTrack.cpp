@@ -135,14 +135,14 @@ void IPGTrack::TaskLoop()
         }
 
         if (_export) {
-#if 0
-            // Account for origin displacement
-            glm::quat q =_quat_r * glm::inverse(_quat_o);
-            std::copy(glm::value_ptr(q), glm::value_ptr(q)+4, rx_data.num_f);
-#endif
             // Export all the received data
             static exporter data("ipgtrack_data.txt");
+#if 0
+            glm::quat q =_quat_r * glm::inverse(_quat_o);
+            data.export_data(glm::value_ptr(q), 4);
+#else
             data.export_data(rx_data.num_f, 16);
+#endif
         }
 
         // Send the msg back
