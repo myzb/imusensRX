@@ -41,14 +41,23 @@ int exporter::export_data(float *data, int data_len)
 
 int get_micros()
 {
-    auto now = std::chrono::system_clock::now();
+    static int flag = 0;
+    static std::chrono::system_clock::time_point midnight;
 
-    time_t tnow = std::chrono::system_clock::to_time_t(now);
-    tm *date = std::localtime(&tnow);
-    date->tm_hour = 0;
-    date->tm_min = 0;
-    date->tm_sec = 0;
-    auto midnight = std::chrono::system_clock::from_time_t(std::mktime(date));
+    std::chrono::system_clock::time_point now = std::chrono::system_clock::now();
+
+    // Get midnight time for today only once
+    if (!flag) {
+        time_t tnow = std::chrono::system_clock::to_time_t(now);
+        tm *date = std::localtime(&tnow);
+        date->tm_hour = 0;
+        date->tm_min = 0;
+        date->tm_sec = 0;
+        midnight = std::chrono::system_clock::from_time_t(std::mktime(date));
+
+        flag = 1;
+    }
+
     auto diff = std::chrono::duration_cast<std::chrono::microseconds>(now - midnight);
     return diff.count();
 }
