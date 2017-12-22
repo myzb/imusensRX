@@ -69,7 +69,9 @@ int device_get_mvmatrix(ClientData data, Tcl_Interp *interp, int objc, Tcl_Obj *
     if (get_keystroke() == 32) {
 #endif
     device->ResetCamera();
+#ifdef ST_COMPARE
         st->ResetCamera();
+#endif
     }
 
     device->GetMVMatrix(interp, tcl_ret);
