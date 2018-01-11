@@ -16,12 +16,16 @@
 #include "DeviceBase.h"
 #include "smarttrack.h"
 
-static const int Debug = 0;
+static const int Debug = 1;
 
 SmartTrack::SmartTrack() : DeviceBase()
 {
     // TODO: these will be passed from TCL
-    std::string dst_addr = "10.0.1.15:50105";
+#if 0
+    std::string dst_addr = "10.0.4.200:50105";  // notebook
+#else
+    std::string dst_addr = "10.0.1.15:50105";   // office PC
+#endif
     std::string src_addr = "10.0.8.5:50105";
     std::string ch_num   = "ch03";
 
