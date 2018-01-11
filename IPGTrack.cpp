@@ -28,7 +28,6 @@ void IPGTrack::ResetCamera()
     if (Debug) std::cout << __func__ << ": Resetting camera" << std::endl;
 
     // Reset the camera and start output to IPGMovie
-    // q(s->h) = q(s->v)
     _quat_o = _quat_r;
     _start = true;
 }
@@ -41,9 +40,9 @@ void IPGTrack::Export(bool state)
 int IPGTrack::GetMVMatrix(Tcl_Interp* interp, Tcl_Obj* tcl_ret)
 {
     // Convert the quaternion to matrix (and substact 'fixed' sensor -> head mounting orientation)
-    // q(s->v) * inv[q(s->h)] = q(h->v) * q(s->h) * inv[q(s->h)] = q(h->v)
     glm::mat3 rot = glm::toMat3(_quat_r * glm::inverse(_quat_o));
 
+    // CM_up = rot*OGL_up (+y), CM_fwd = rot*OGL_fwd (-z)
     glm::vec3 finalUp        = rot * glm::vec3(0.0f, 1.0f,  0.0f);
     glm::vec3 finalForward   = rot * glm::vec3(0.0f, 0.0f, -1.0f);
 
@@ -95,11 +94,11 @@ int IPGTrack::Init()
 
 void IPGTrack::SetQuat(data_t &rx_data)
 {
+    // Remap the NED quat to CM coordinates
     // +w rotates the sensor frame, -w rotates the camera
-    // q(s->v) = q(h->v)*q(s->h)
     _quat_r = glm::quat(rx_data.num_f[0]*(+1.0f),    /* CM_w = +NED_w */
-                        rx_data.num_f[1]*(-1.0f),    /* CM_x = -NED_x */
-                        rx_data.num_f[2]*(+1.0f),    /* CM_y = +NED_y */
+                        rx_data.num_f[1]*(+1.0f),    /* CM_x = +NED_x */
+                        rx_data.num_f[2]*(-1.0f),    /* CM_y = -NED_y */
                         rx_data.num_f[3]*(-1.0f));   /* CM_z = -NED_z */
 }
 
