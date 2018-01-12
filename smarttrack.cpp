@@ -138,6 +138,7 @@ int SmartTrack::Init()
     if (!_dt->isLocalDataPortValid()) {
         if (Debug) std::cout << "DTrack init error" << std::endl;
         delete _dt;
+        _dt = nullptr;
         return -2;
     }
 
@@ -161,6 +162,7 @@ int SmartTrack::Init()
     if (err_code < 0) {
         std::cout << "Error, Smarttrack answered with error code: " << err_code << std::endl;
         delete _dt;
+        _dt = nullptr;
         return -2;
     }
 
@@ -178,6 +180,7 @@ int SmartTrack::Init()
     if (err_code < 0) {
         std::cout << "Error setting params and active output channel." << std::endl;
         delete _dt;
+        _dt = nullptr;
         return -2;
     }
 
@@ -197,6 +200,7 @@ int SmartTrack::Init()
                       << std::endl;
         }
         delete _dt;
+        _dt = nullptr;
         return -2;
     }
 
@@ -275,6 +279,9 @@ int SmartTrack::Terminate()
         _dt       = nullptr;
         _rxThread = nullptr;
     }
+
+    if (Debug)
+        std::cout << __func__  << " Successful! " << std::endl;
 
     return 0;
 }
