@@ -36,8 +36,12 @@ void hack_ipgmovie_terminate() {
 #endif /* ST_COMPARE */
 }
 
-void hack_ipgmovie_init() {
+void hack_ipgmovie_init(Tcl_Interp *interp) {
     atexit(hack_ipgmovie_terminate);
+
+    // Workaround to set undefined variable Pgm($Debug)
+    Tcl_SetVar2Ex(interp, "Pgm", "Debug", Tcl_NewIntObj(0), 0);
+
     device = new IPGTrack();
     device->Init();
     device->Export(true);
@@ -48,15 +52,12 @@ void hack_ipgmovie_init() {
     st->Export(true);
 #endif /* ST_COMPARE */
 }
+
 int device_get_mvmatrix(ClientData data, Tcl_Interp *interp, int objc, Tcl_Obj *CONST objv[])
 {
     // FIXME: Remove once IPGMovie implements this
     // Make sure to call init function only once
-    boost::call_once(hack_ipgmovie_init, once);
-
-    // FIXME: Remove once IPGMovie implements this
-    // Workaround to set undefined variable Pgm(Debug)
-    Tcl_SetVar2Ex(interp, "Pgm", "Debug", Tcl_NewIntObj(0), 0);
+    boost::call_once(boost::bind(&hack_ipgmovie_init, interp), once);
 
     // Allocate new tcl_ret object
     Tcl_Obj* tcl_ret = Tcl_NewListObj(0, NULL);
