@@ -57,7 +57,7 @@ void SmartTrack::ResetCamera()
 
 void SmartTrack::TaskLoop()
 {
-    if (Debug) std::cout << "Executing " << __func__ << std::endl;
+    if (Debug) std::cout << __func__  << ": Entered" << std::endl;
 
     bool silence_output = false; // debug variable
 
@@ -116,7 +116,7 @@ void SmartTrack::TaskLoop()
 
 int SmartTrack::Init()
 {
-    std::cout << "Executing " << __func__ << std::endl;
+    if (Debug) std::cout << __func__  << ": Entered" << std::endl;
 
     if (Debug) {
         std::cout << "Src  IP address: " << _st.src_ip << " port " << _st.src_port << std::endl;
@@ -212,8 +212,7 @@ int SmartTrack::Init()
 
 int SmartTrack::GetMVMatrix(Tcl_Interp* interp, Tcl_Obj* tcl_ret)
 {
-    if (Debug == 2)
-        std::cout << "Executing " << __func__ << std::endl;
+    if (Debug == 2) std::cout << __func__  << ": Entered" << std::endl;
 
     // Mutex lock
     _rxdata.lock();
@@ -249,7 +248,7 @@ int SmartTrack::GetMVMatrix(Tcl_Interp* interp, Tcl_Obj* tcl_ret)
 int SmartTrack::Terminate()
 {
     if (Debug)
-        std::cout << "Executing " << __func__ << std::endl;
+        std::cout << __func__  << ": Entered" << std::endl;
 
     // Clean up:
     if (_dt != nullptr) {
@@ -281,7 +280,7 @@ int SmartTrack::Terminate()
     }
 
     if (Debug)
-        std::cout << __func__  << " Successful! " << std::endl;
+        std::cout << __func__  << ": Exit" << std::endl;
 
     return 0;
 }
