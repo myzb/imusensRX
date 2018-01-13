@@ -129,7 +129,7 @@ void IPGTrack::TaskLoop()
             timeout++;
         }
 
-        if (get_micros() - ts >= 5000000) {
+        if (Debug && (get_micros() - ts >= 5000000)) {
             std::cout << __func__ << ": Timeout/s = " << timeout/5.0f << std::endl;
             ts = get_micros();
             timeout = 0;
@@ -170,12 +170,12 @@ int IPGTrack::Send(char keycode)
     // (c)orrection only
     case 99:
         tx_data.raw[0] = 0x01;
-        std::cout << __func__ << ": Prediction only" << std::endl;
+        std::cout << __func__ << ": Correction only" << std::endl;
         break;
     // (p)rediction only
     case 112:
         tx_data.raw[0] = 0x02;
-        std::cout << __func__ << ": Correction only" << std::endl;
+        std::cout << __func__ << ": Prediction only" << std::endl;
         break;
     // (x) all off
     case 120:
