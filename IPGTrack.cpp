@@ -159,10 +159,30 @@ int IPGTrack::Send(char keycode)
     static data_t tx_data = { 0 };
 
     switch (keycode) {
-    // (a)ll on
-    case 97:
+    // 1e-0 Filter param
+    case 48:
+        tx_data.raw[0] = 0x10;
+        std::cout << __func__ << ": Filter params 1e-0" << std::endl;
+        break;
+    // 1e-1 Filter param
+    case 49:
+        tx_data.raw[0] = 0x20;
+        std::cout << __func__ << ": Filter params 1e-1" << std::endl;
+        break;
+    // 1e-2 Filter param
+    case 50:
+        tx_data.raw[0] = 0x40;
+        std::cout << __func__ << ": Filter params 1e-2" << std::endl;
+        break;
+    // 1e-3 (Default) Filter param
+    case 51:
+        tx_data.raw[0] = 0x80;
+        std::cout << __func__ << ": Filter params 1e-3" << std::endl;
+        break;
+    // (r) reset/all on
+    case 114:
         tx_data.raw[0] = 0x00;
-        std::cout << __func__ << ": All on" << std::endl;
+        std::cout << __func__ << ": Reset defaults" << std::endl;
         break;
     // (c)orrection only
     case 99:
@@ -173,6 +193,11 @@ int IPGTrack::Send(char keycode)
     case 112:
         tx_data.raw[0] = 0x02;
         std::cout << __func__ << ": Prediction only" << std::endl;
+        break;
+    // (m)ag correction off
+    case 109:
+        tx_data.raw[0] = 0x04;
+        std::cout << __func__ << ": Magnetometer off" << std::endl;
         break;
     // (x) all off
     case 120:
