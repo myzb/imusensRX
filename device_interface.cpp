@@ -60,18 +60,24 @@ int device_get_mvmatrix(ClientData data, Tcl_Interp *interp, int objc, Tcl_Obj *
     // Allocate new tcl_ret object
     Tcl_Obj* tcl_ret = Tcl_NewListObj(0, NULL);
 
-    // On 'Spacebar': set the new camera origin
     // FIXME: Remove once IPGMovie implements this
+    // On 'Spacebar': set the new camera origin
 #if defined(OS_WINDOWS)
     if (GetAsyncKeyState(VK_SPACE)) {
 #else
-    if (get_keystroke() == 32) {
+    char key = get_keystroke();
+    if (key == 32) {
 #endif
     device->ResetCamera();
 #ifdef ST_COMPARE
         st->ResetCamera();
 #endif
     }
+
+    // On 'key': send a message to the device
+#if !defined(OS_WINDOWS)
+    if (key > 32) device->Send(key);
+#endif
 
     device->GetMVMatrix(interp, tcl_ret);
 

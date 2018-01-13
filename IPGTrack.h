@@ -31,13 +31,13 @@ private:
 
     void SetQuat(data_t &rx_data);
     void TaskLoop();
-    void Send(void *buf, int len, int timeout);
 
 public:
     IPGTrack();
     IPGTrack(std::string &cmd);
 
     int Init();
+    int Send(char keycode);
     int Terminate();
     int GetMVMatrix(Tcl_Interp* interp, Tcl_Obj* tcl_ret);
     void Export(bool state);

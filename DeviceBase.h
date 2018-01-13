@@ -20,6 +20,7 @@ public:
     virtual ~DeviceBase();
 
     virtual int Init();
+    virtual int Send(char keycode);
     virtual int Terminate();
     virtual int GetMVMatrix(Tcl_Interp* interp, Tcl_Obj* tcl_ret);
     virtual int PostProcc();

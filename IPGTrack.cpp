@@ -109,7 +109,7 @@ void IPGTrack::TaskLoop()
     data_t tx_data = { 0 }, rx_data = { 0 };
 
     // Msg the uC 'anything' to signalise application is online
-    boost::thread(&IPGTrack::Send, this, &tx_data, 64, 100);
+    boost::thread(rawhid_send, 0, &tx_data.raw, 64, 100);
 
     while (_running) {
 
@@ -156,15 +156,40 @@ void IPGTrack::TaskLoop()
     std::cout << __func__ << ": Thread terminated!" << std::endl;
 }
 
-void IPGTrack::Send(void *buf, int len, int timeout)
+int IPGTrack::Send(char keycode)
 {
-    int ret = rawhid_send(0, buf, len, timeout);
-    if (ret > 0) {
-        if (Debug)
-            std::cout << __func__ << ": Sending Msg at ms: " << get_micros()/1000.0f << std::endl;
-    }else if (ret < 0) {
-        std::cout << __func__ << ": Error sending!" << std::endl;
+    if (Debug) std::cout << __func__ << ": Entered" << std::endl;
+    static data_t tx_data = { 0 };
+
+    switch (keycode) {
+    // (a)ll on
+    case 97:
+        tx_data.raw[0] = 0x00;
+        std::cout << __func__ << ": All on" << std::endl;
+        break;
+    // (c)orrection only
+    case 99:
+        tx_data.raw[0] = 0x01;
+        std::cout << __func__ << ": Prediction only" << std::endl;
+        break;
+    // (p)rediction only
+    case 112:
+        tx_data.raw[0] = 0x02;
+        std::cout << __func__ << ": Correction only" << std::endl;
+        break;
+    // (x) all off
+    case 120:
+        tx_data.raw[0] = 0x03;
+        std::cout << __func__ << ": All off" << std::endl;
+        break;
+    // Unknown key
+    default:
+        return -1;
     }
+    // Send the bitfield to uC
+    if (Debug) std::cout << __func__ << ": Sending " << std::bitset<8>(tx_data.raw[0]) << std::endl;
+    boost::thread(rawhid_send, 0, &tx_data, 64, 100);
+    return 0;
 }
 
 int IPGTrack::Terminate()
