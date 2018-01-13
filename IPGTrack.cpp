@@ -40,7 +40,7 @@ void IPGTrack::Export(bool state)
 int IPGTrack::GetMVMatrix(Tcl_Interp* interp, Tcl_Obj* tcl_ret)
 {
     // Convert the quaternion to matrix (and substact 'fixed' sensor -> head mounting orientation)
-    glm::mat3 rot = glm::toMat3(_quat_r * glm::inverse(_quat_o));
+    glm::mat3 rot = glm::toMat3(_quat_r * glm::conjugate(_quat_o));
 
     // CM_up = rot*OGL_up (+y), CM_fwd = rot*OGL_fwd (-z)
     glm::vec3 finalUp        = rot * glm::vec3(0.0f, 1.0f,  0.0f);
