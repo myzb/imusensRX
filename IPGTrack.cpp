@@ -148,9 +148,6 @@ void IPGTrack::TaskLoop()
             data.export_data(rx_data.num_f, 16);
 #endif
         }
-
-        // Send the msg back
-        //boost::thread thread(Send, rx_data.raw, 64, 10);
     }
 
     std::cout << __func__ << ": Thread terminated!" << std::endl;
