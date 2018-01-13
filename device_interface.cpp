@@ -17,8 +17,6 @@
 #include "IPGTrack.h"
 #include "smarttrack.h"
 
-#define ST_COMPARE
-
 DeviceBase *device = nullptr;
 #ifdef ST_COMPARE
 DeviceBase *st = nullptr;
