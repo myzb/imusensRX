@@ -9,7 +9,7 @@ MKFILE_PATH        := $(abspath $(lastword $(MAKEFILE_LIST)))
 ROOT_DIR           := $(patsubst %/,%,$(dir $(MKFILE_PATH)))
 MINGW_INSTALL_DIR  := /usr/i686-w64-mingw32
 DEVEL_DIR          := /local/work.may/Development_Linux
-CM_ROOT_DIR        := /local/work.may/CarMaker/linux-6.0.3
+CM_ROOT_DIR        := /home/matt/ipg/hil/linux-6.0.4
 OBJ_DIR            := out
 RM                 := rm -rf
 
@@ -93,11 +93,13 @@ CPP_SRCS += \
 LIBS += \
 	boost_system \
 	boost_thread \
-	usb \
-	tcl8.6
+	usb
 	
 INCLUDE_DIRS += \
 	$(SUB_DIRS)
+
+LIB_DIRS += \
+	$(CM_ROOT_DIR)/GUI/libtcl8.6.so
 
 CC       := gcc
 CXX      := g++
