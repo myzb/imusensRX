@@ -140,7 +140,7 @@ void IPGTrack::TaskLoop()
             static exporter data("/home/matt/ipgtrack_data.txt");
 #if 1
             std::vector<float> ipgtrack;
-            glm::quat q =_quat_r * glm::inverse(_quat_o);
+            glm::quat q =_quat_r * glm::conjugate(_quat_o);
             ipgtrack.insert(ipgtrack.begin(), glm::value_ptr(q), glm::value_ptr(q)+4);
             ipgtrack.insert(ipgtrack.end(),rx_data.num_f, rx_data.num_f+16);
             data.export_data(ipgtrack.data(), ipgtrack.size());
