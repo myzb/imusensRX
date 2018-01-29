@@ -52,7 +52,7 @@ void SmartTrack::Export(bool state)
 void SmartTrack::ResetCamera()
 {
     if (Debug) std::cout << __func__ << ": Resetting camera" << std::endl;
-    _dcm_o = _dcm_r;
+    _dcm_ref = _dcm;
 }
 
 void SmartTrack::TaskLoop()
@@ -84,16 +84,16 @@ void SmartTrack::TaskLoop()
             // Mutex lock
             _rxdata.lock();
 
-            std::copy(_body.rot, _body.rot+9, glm::value_ptr(_dcm_r)); // DCM
-            std::copy(_body.loc, _body.loc+3, glm::value_ptr(_pos_r)); // Position
+            std::copy(_body.rot, _body.rot+9, glm::value_ptr(_dcm)); // DCM
+            std::copy(_body.loc, _body.loc+3, glm::value_ptr(_pos)); // Position
 
             if (_export) {
                 static exporter data("smarttrack_data.txt");
 #if 1
-                glm::mat3 dcm = _dcm_r * glm::inverse(_dcm_o);
+                glm::mat3 dcm = _dcm * glm::inverse(_dcm_ref);
                 data.export_data(glm::value_ptr(dcm), 9);
 #else
-                data.export_data(glm::value_ptr(_dcm_r), 9);
+                data.export_data(glm::value_ptr(_dcm), 9);
 #endif
             }
 
@@ -127,13 +127,13 @@ int SmartTrack::Init()
     if (_st.src_port != 50105)
         std::cout << "WARNING: DTrack2 port must be 50105" << std::endl;
 
-    _dt = new DTrackSDK(_st.src_ip,             /* IP address of Strack */
-                       _st.src_port,            /* Port number of Strack */
-                       _st.dst_port,            /* Data rx port number to rx data from STrack */
-                       DTrackSDK::SYS_DTRACK_2, /* ARTtrack type */
-                       32768,                   /* UDP rx buffer size (in bytes) */
-                       20000,                   /* Timout to rx data (in us) */
-                       5000000);                /* Timeout for std STrack replies (in us) */
+    _dt = new DTrackSDK(_st.src_ip,              /* IP address of Strack */
+                        _st.src_port,            /* Port number of Strack */
+                        _st.dst_port,            /* Data rx port number to rx data from STrack */
+                        DTrackSDK::SYS_DTRACK_2, /* ARTtrack type */
+                        32768,                   /* UDP rx buffer size (in bytes) */
+                        20000,                   /* Timout to rx data (in us) */
+                        5000000);                /* Timeout for std STrack replies (in us) */
 
     if (!_dt->isLocalDataPortValid()) {
         if (Debug) std::cout << "DTrack init error" << std::endl;
@@ -218,8 +218,8 @@ int SmartTrack::GetMVMatrix(Tcl_Interp* interp, Tcl_Obj* tcl_ret)
     _rxdata.lock();
 
     // Substract origin from current data
-    glm::mat3 rot = _dcm_r * glm::inverse(_dcm_o);
-    glm::vec3 pos = _pos_r - _pos_o;
+    glm::mat3 rot = _dcm * glm::inverse(_dcm_ref);
+    glm::vec3 pos = _pos - _pos_ref;
 
     // Mutex unlock
     _rxdata.unlock();

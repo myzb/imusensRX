@@ -26,8 +26,8 @@ private:
     boost::thread*     _rxThread = nullptr;
     boost::mutex       _rxdata;
 
-    glm::vec3 _pos_o = glm::vec3(), _pos_r = glm::vec3();
-    glm::mat3 _dcm_o = glm::mat3(), _dcm_r = glm::mat3();
+    glm::vec3 _pos = glm::vec3(), _pos_ref = glm::vec3();
+    glm::mat3 _dcm = glm::mat3(), _dcm_ref = glm::mat3();
     glm::mat4 view, proj;
 
     struct stinfo_t {

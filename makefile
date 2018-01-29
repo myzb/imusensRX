@@ -1,5 +1,5 @@
 # Shared library makefile
-# Created on : Jun 12, 2017
+# Created on : Sep 12, 2017
 #     Author : may
 
 TARGET             := libimusensor

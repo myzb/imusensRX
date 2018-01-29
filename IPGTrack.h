@@ -27,7 +27,7 @@ private:
     bool _start   = false;
     bool _export  = false;
     boost::thread *_rxThread = nullptr;
-    glm::quat _quat_o = glm::quat(), _quat_r = glm::quat();
+    glm::quat _quat_ref = glm::quat(), _quat = glm::quat();
 
     void SetQuat(data_t &rx_data);
     void TaskLoop();

@@ -28,7 +28,7 @@ void IPGTrack::ResetCamera()
     if (Debug) std::cout << __func__ << ": Resetting camera" << std::endl;
 
     // Reset the camera and start output to IPGMovie
-    _quat_o = _quat_r;
+    _quat_ref = _quat;
     _start = true;
 }
 
@@ -40,7 +40,7 @@ void IPGTrack::Export(bool state)
 int IPGTrack::GetMVMatrix(Tcl_Interp* interp, Tcl_Obj* tcl_ret)
 {
     // Convert the quaternion to matrix (and substact 'fixed' sensor -> head mounting orientation)
-    glm::mat3 rot = glm::toMat3(_quat_r * glm::conjugate(_quat_o));
+    glm::mat3 rot = glm::toMat3(_quat * glm::conjugate(_quat_ref));
 
     // CM_up = rot*OGL_up (+y), CM_fwd = rot*OGL_fwd (-z)
     glm::vec3 finalUp        = rot * glm::vec3(0.0f, 1.0f,  0.0f);
@@ -96,10 +96,10 @@ void IPGTrack::SetQuat(data_t &rx_data)
 {
     // Remap the NED quat to CM coordinates
     // +w rotates the sensor frame, -w rotates the camera
-    _quat_r = glm::quat(rx_data.num_f[0]*(+1.0f),    /* CM_w = +NED_w */
-                        rx_data.num_f[1]*(+1.0f),    /* CM_x = +NED_x */
-                        rx_data.num_f[2]*(-1.0f),    /* CM_y = -NED_y */
-                        rx_data.num_f[3]*(-1.0f));   /* CM_z = -NED_z */
+    _quat = glm::quat(rx_data.num_f[0]*(+1.0f),    /* CM_w = +NED_w */
+                      rx_data.num_f[1]*(+1.0f),    /* CM_x = +NED_x */
+                      rx_data.num_f[2]*(-1.0f),    /* CM_y = -NED_y */
+                      rx_data.num_f[3]*(-1.0f));   /* CM_z = -NED_z */
 }
 
 void IPGTrack::TaskLoop()
@@ -137,10 +137,10 @@ void IPGTrack::TaskLoop()
 
         if (_export) {
             // Export all the received data
-            static exporter data("/home/matt/ipgtrack_data.txt");
+            static exporter data("ipgtrack_data.txt");
 #if 1
             std::vector<float> ipgtrack;
-            glm::quat q =_quat_r * glm::conjugate(_quat_o);
+            glm::quat q =_quat * glm::conjugate(_quat_ref);
             ipgtrack.insert(ipgtrack.begin(), glm::value_ptr(q), glm::value_ptr(q)+4);
             ipgtrack.insert(ipgtrack.end(),rx_data.num_f, rx_data.num_f+16);
             data.export_data(ipgtrack.data(), ipgtrack.size());
@@ -159,51 +159,8 @@ int IPGTrack::Send(char keycode)
     static data_t tx_data = { 0 };
 
     switch (keycode) {
-    // 1e-0 Filter param
-    case 48:
-        tx_data.raw[0] = 0x10;
-        std::cout << __func__ << ": Filter params 1e-0" << std::endl;
-        break;
-    // 1e-1 Filter param
-    case 49:
-        tx_data.raw[0] = 0x20;
-        std::cout << __func__ << ": Filter params 1e-1" << std::endl;
-        break;
-    // 1e-2 Filter param
-    case 50:
-        tx_data.raw[0] = 0x40;
-        std::cout << __func__ << ": Filter params 1e-2" << std::endl;
-        break;
-    // 1e-3 (Default) Filter param
-    case 51:
-        tx_data.raw[0] = 0x80;
-        std::cout << __func__ << ": Filter params 1e-3" << std::endl;
-        break;
-    // (r) reset/all on
-    case 114:
-        tx_data.raw[0] = 0x00;
-        std::cout << __func__ << ": Reset defaults" << std::endl;
-        break;
-    // (c)orrection only
-    case 99:
-        tx_data.raw[0] = 0x01;
-        std::cout << __func__ << ": Correction only" << std::endl;
-        break;
-    // (p)rediction only
-    case 112:
-        tx_data.raw[0] = 0x02;
-        std::cout << __func__ << ": Prediction only" << std::endl;
-        break;
-    // (m)ag correction off
-    case 109:
-        tx_data.raw[0] = 0x04;
-        std::cout << __func__ << ": Magnetometer off" << std::endl;
-        break;
-    // (x) all off
-    case 120:
-        tx_data.raw[0] = 0x03;
-        std::cout << __func__ << ": All off" << std::endl;
-        break;
+    // TODO: Send something back to the Teensy
+
     // Unknown key
     default:
         return -1;
